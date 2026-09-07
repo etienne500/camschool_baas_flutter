@@ -76,7 +76,7 @@ class BaasQuery {
   BaasQuery whereLessThanOrEqualTo(String field, dynamic value) => where(field, '<=', value);
   BaasQuery whereIn(String field, List<dynamic> values) => where(field, 'in', values);
   BaasQuery whereContains(String field, dynamic value) => where(field, 'contains', value);
-
+  
   /// Order documents by a field
   BaasQuery orderBy(String field, {bool descending = false}) {
     final query = _clone();
@@ -84,7 +84,7 @@ class BaasQuery {
     query._orderDirection = descending ? 'desc' : 'asc';
     return query;
   }
-
+   
   /// Limit the number of documents returned
   BaasQuery limit(int count) {
     final query = _clone();
