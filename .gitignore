@@ -1,0 +1,12 @@
+﻿# Flutter .gitignore
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+*.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+.vscode/
+*.iml
