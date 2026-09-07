@@ -1,4 +1,4 @@
-﻿name: camschool_baas_flutter
+name: camschool_baas_flutter
 description: Complete Client SDK for CamSchool BaaS (Backend-as-a-Service) providing Firestore-like NoSQL database, phone & email Auth, Storage and Push Notifications.
 version: 1.0.0
 homepage: https://camschool.cm
