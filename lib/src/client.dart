@@ -1,9 +1,10 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'auth.dart';
 import 'database.dart';
 import 'storage.dart';
+import 'payments.dart';
 import 'notifications.dart';
 import 'exceptions.dart';
 
@@ -21,6 +22,7 @@ class BaaS {
   late final BaasAuth auth;
   late final BaasDatabase database;
   late final BaasStorage storage;
+  late final BaasPayments payments;
   late final BaasNotifications notifications;
 
   BaaS._internal({
@@ -32,6 +34,7 @@ class BaaS {
     auth = BaasAuth(this);
     database = BaasDatabase(this);
     storage = BaasStorage(this);
+    payments = BaasPayments(this);
     notifications = BaasNotifications(this);
   }
 
@@ -90,10 +93,12 @@ class BaaS {
   }
 
   /// Construct full URL for an endpoint
-  Uri buildUrl(String endpoint) {
+  Uri buildUrl(String endpoint, [Map<String, dynamic>? queryParams]) {
     final cleanEndpoint = endpoint.replaceAll(RegExp(r'^/+'), '');
     final fullPath = '$baseUrl/$prefix/$projectId/$cleanEndpoint';
-    return Uri.parse(fullPath);
+    final uri = Uri.parse(fullPath);
+    final qp = queryParams?.map((k, v) => MapEntry(k, v.toString()));
+    return qp != null && qp.isNotEmpty ? uri.replace(queryParameters: qp) : uri;
   }
 
   /// Default HTTP headers
@@ -116,8 +121,9 @@ class BaaS {
     String endpoint, {
     Map<String, dynamic>? body,
     Map<String, String>? customHeaders,
+    Map<String, dynamic>? queryParams,
   }) async {
-    final url = buildUrl(endpoint);
+    final url = buildUrl(endpoint, queryParams);
     final headers = {
       ...defaultHeaders,
       if (customHeaders != null) ...customHeaders,

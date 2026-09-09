@@ -1,7 +1,6 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'client.dart';
 import 'models.dart';
-import 'exceptions.dart';
 
 /// Authentication Module
 class BaasAuth {

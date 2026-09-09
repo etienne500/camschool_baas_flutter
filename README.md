@@ -1,4 +1,4 @@
-﻿# 🚀 CamSchool BaaS — SDK Flutter Officiel
+# 🚀 CamSchool BaaS — SDK Flutter Officiel
 
 [![GitHub](https://img.shields.io/badge/GitHub-etienne500%2Fcamschool__baas__flutter-blue?logo=github)](https://github.com/etienne500/camschool_baas_flutter)
 [![Flutter](https://img.shields.io/badge/Flutter-3.0%2B-02569B?logo=flutter)](https://flutter.dev)
@@ -6,28 +6,25 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Client Flutter / Dart officiel pour CamSchool BaaS (Backend-as-a-Service).**  
-> Une alternative autonome, ultra-rapide et sécurisée à Firebase et Supabase, conçue pour les applications mobiles et web.
+> Moteur complet pour Base NoSQL, Authentification Téléphone/SMS OTP, Cloud Storage, Notifications Push et **Paiements & Retraits Mobile Money (MTN, Orange, Cartes)**.
 
 ---
 
 ## 🌟 Fonctionnalités
 
+* 💳 **Paiements & Retraits Universels (BaaS Pay)** :
+  * Encaissements (PayIn) Mobile Money MTN (*126#), Orange Money (*150#) et Cartes Bancaires.
+  * Commission par défaut : **7% en entrée (PayIn)**, **0% en sortie (PayOut / Retrait)** (modifiable par l'Admin par moyen de paiement).
+  * **Widgets UI Drop-in** : Modales complètes `BaasPaymentModal.show(...)` et `BaasPayoutModal.show(...)` prêtes à l'emploi.
+  * Polling en direct et webhooks automatiques.
 * 🔥 **Base NoSQL Firestore-like** : Collections, documents JSON, requêtes filtrées (`where`), tri, pagination et écritures par lots (*Batch writes*).
-* 📱 **Authentification Multi-Méthodes** :
-  * Inscription / Connexion par Email & Mot de passe.
-  * Connexion par **Numéro de Téléphone + OTP SMS** (compatible MTN / Orange / Nexttel).
-  * Mode Invité / Connexion Anonyme.
-  * Persistance et restauration automatique de session JWT via `SharedPreferences`.
-  * Flux réactif en direct (`onAuthStateChanged`).
-* 💾 **Cloud Storage** : Téléversement multi-fichiers, métadonnées, URLs publiques et URLs signées temporaires.
-* 🔔 **Notifications Push** : Enregistrement de device tokens (FCM / APNs) et diffusion par Topics.
-* 🔒 **Security Rules** : Protection granulaire par utilisateur.
+* 📱 **Authentification Multi-Méthodes** : Email/Mot de passe, SMS OTP, Anonyme, persistance JWT.
+* 💾 **Cloud Storage** : Téléversement multi-fichiers, métadonnées et URLs publiques/signées.
+* 🔔 **Notifications Push** : FCM / APNs et Topics.
 
 ---
 
 ## 📦 Installation Directe depuis GitHub
-
-Ajoutez simplement cette dépendance dans votre fichier `pubspec.yaml` :
 
 ```yaml
 dependencies:
@@ -46,7 +43,7 @@ flutter pub get
 
 ---
 
-## ⚙️ Initialisation Rapide (`main.dart`)
+## ⚙️ Initialisation (`main.dart`)
 
 ```dart
 import 'package:flutter/material.dart';
@@ -55,12 +52,11 @@ import 'package:camschool_baas_flutter/camschool_baas_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialisation du client BaaS CamSchool
   await BaaS.initialize(
-    baseUrl: 'https://votre-api-camschool.cm',
-    projectId: 'votre_project_id',
-    apiKey: 'baas_pub_xxxxxxxxxxxxxxxxxxxx',
-    autoRestoreSession: true, // Restauration automatique du JWT
+    baseUrl: 'https://camschool.kmrshop.com', // URL BaaS Cloud Officiel
+    projectId: 'proj_zf3qirtdv4xc', // Votre Project ID
+    apiKey: 'pk_live_Gjh1W9LY8DpJJJyfUuW4iGqHewiJhRDvrb9gyCZI', // Clé Publique
+    autoRestoreSession: true,
   );
 
   runApp(const MyApp());
@@ -69,67 +65,115 @@ void main() async {
 
 ---
 
-## 📖 Exemples de Code
+## 💳 1. PAIEMENTS & RETRAITS MOBILE MONEY
 
-### 1. 🔐 Authentification par Téléphone & OTP SMS
+### A. Afficher le Modal de Paiement Clé-en-main (PayIn - 7% Frais)
 ```dart
-// Demande d'OTP
-final res = await BaaS.instance.auth.sendPhoneOtp(phoneNumber: '+237695512390');
+import 'package:flutter/material.dart';
+import 'package:camschool_baas_flutter/camschool_baas_flutter.dart';
 
-// Vérification du code 6 chiffres
-final user = await BaaS.instance.auth.verifyPhoneOtp(
-  phoneNumber: '+237695512390',
-  code: '482910',
-  token: res['otp_token'],
-);
-
-print('Utilisateur connecté : ${user.phoneNumber}');
-```
-
-### 2. 🗄️ Base de Données NoSQL (CRUD & Requêtes)
-```dart
-// Ajouter un document
-final docRef = await BaaS.instance.collection('courses').add({
-  'title': 'Mathématiques Terminale C',
-  'teacher': 'M. Kamdem',
-  'coefficient': 5,
-  'published': true,
-});
-
-// Requête filtrée avec tri et pagination
-final courses = await BaaS.instance
-    .collection('courses')
-    .whereEqualTo('level', 'Terminale')
-    .whereGreaterThanOrEqualTo('coefficient', 4)
-    .orderBy('coefficient', descending: true)
-    .limit(20)
-    .get();
-
-for (final doc in courses) {
-  print('- ${doc.get('title')} (ID: ${doc.id})');
+void openPayment(BuildContext context) {
+  BaasPaymentModal.show(
+    context,
+    amount: 2500, // Montant en XAF
+    currency: 'XAF',
+    description: 'Abonnement Mensuel Louanges Premium',
+    customerName: 'Jean Dupont',
+    onSuccess: (transaction) {
+      print('✅ Paiement validé avec succès : ${transaction.reference}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Paiement réussi ! Réf: ${transaction.reference}')),
+      );
+    },
+    onError: (error) {
+      print('❌ Erreur de paiement : $error');
+    },
+  );
 }
 ```
 
-### 3. 📁 Cloud Storage (Upload)
+### B. Afficher le Modal de Retrait Clé-en-main (PayOut - 0% Frais)
+```dart
+void openWithdrawal(BuildContext context) {
+  BaasPayoutModal.show(
+    context,
+    maxAmount: 50000,
+    currency: 'XAF',
+    beneficiaryName: 'Jean Dupont',
+    onSuccess: (result) {
+      print('✅ Demande de retrait envoyée : ${result.reference}');
+    },
+    onError: (error) {
+      print('❌ Erreur de retrait : $error');
+    },
+  );
+}
+```
+
+### C. Initier un Paiement par Code (API Directe)
+```dart
+final payin = await BaaS.instance.payments.initiatePayin(
+  amount: 10000,
+  paymentMethod: 'MTN_MOMO', // ou 'ORANGE_MONEY', 'CARD'
+  phone: '670000000',
+  description: 'Achat Recueil de Cantiques',
+);
+
+print('Transaction ID: ${payin.transactionId}');
+print('Frais BaaS (7%): ${payin.feeAmount} XAF');
+print('Net crédité: ${payin.netAmount} XAF');
+print('Message USSD: ${payin.ussdPrompt}');
+
+// Écouter le statut en direct
+BaaS.instance.payments.pollTransactionStatus(payin.reference).listen((tx) {
+  if (tx.isSuccessful) {
+    print('Paiement confirmé sur le téléphone du client !');
+  }
+});
+```
+
+---
+
+## 🗄️ 2. BASE DE DONNÉES NoSQL
+
+```dart
+// Ajouter un document
+final docRef = await BaaS.instance.collection('songbooks').add({
+  'title': 'Chants de Victoire',
+  'total_songs': 311,
+  'published': true,
+});
+
+// Requête filtrée
+final results = await BaaS.instance
+    .collection('songbooks')
+    .whereEqualTo('published', true)
+    .orderBy('total_songs', descending: true)
+    .limit(20)
+    .get();
+```
+
+---
+
+## 📁 3. CLOUD STORAGE
+
 ```dart
 final fileInfo = await BaaS.instance.storage.uploadBytes(
-  path: 'avatars/user_123.jpg',
-  bytes: imageBytes,
-  filename: 'avatar.jpg',
+  path: 'songbooks/recueil.pdf',
+  bytes: pdfBytes,
+  filename: 'recueil.pdf',
+  mimeType: 'application/pdf',
   isPublic: true,
 );
 
-print('URL du fichier : ${fileInfo.url}');
+print('URL Cloud du PDF: ${fileInfo.url}');
 ```
 
 ---
 
 ## 📚 Documentation Complète
 
-Pour consulter le guide exhaustif étape par étape avec architecture, gestion des erreurs, écritures par lots et exemples d'interfaces Flutter complètes, veuillez lire le fichier **[doc.md](./doc.md)**.
-
----
+Consultez le guide exhaustif **[doc.md](./doc.md)** pour l'architecture détaillée, les règles de sécurité et les webhooks.
 
 ## 📄 Licence
-
-Ce projet est sous licence MIT - voir le fichier [LICENSE](./LICENSE) pour plus de détails.
+Licence MIT - voir le fichier [LICENSE](./LICENSE).

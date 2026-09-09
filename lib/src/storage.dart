@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'client.dart';
 import 'models.dart';
@@ -32,6 +32,7 @@ class BaasStorage {
 
     request.fields['path'] = path;
     request.fields['visibility'] = isPublic ? 'public' : 'private';
+    request.fields['public'] = isPublic ? '1' : '0';
 
     request.files.add(http.MultipartFile.fromBytes(
       'file',
@@ -51,11 +52,11 @@ class BaasStorage {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final fileData = json['data'] is Map<String, dynamic> ? json['data'] : json;
-      return BaasFileMetadata.fromMap(fileData);
+      return BaasFileMetadata.fromMap(Map<String, dynamic>.from(fileData));
     }
 
     throw BaasException(
-      json['message'] ?? 'Storage upload failed',
+      json is Map && json['message'] != null ? json['message'].toString() : 'Storage upload failed',
       statusCode: response.statusCode,
       details: json,
     );
@@ -68,9 +69,9 @@ class BaasStorage {
       'limit': limit,
     };
 
-    final res = await _client.request('GET', 'storage/files');
+    final res = await _client.request('GET', 'storage/files', queryParams: queryParams);
     final rawList = res['data'] is List ? res['data'] as List : [];
-    return rawList.map((item) => BaasFileMetadata.fromMap(item)).toList();
+    return rawList.map((item) => BaasFileMetadata.fromMap(Map<String, dynamic>.from(item))).toList();
   }
 
   /// Generate a temporary signed download URL
@@ -79,7 +80,8 @@ class BaasStorage {
       'path': path,
       'expires_in': expiresInMinutes,
     });
-    return res['data']['signed_url'] ?? res['data']['url'] ?? '';
+    final data = res['data'] is Map ? res['data'] : res;
+    return (data['signed_url'] ?? data['url'] ?? '').toString();
   }
 
   /// Delete a file by path

@@ -1,4 +1,4 @@
-﻿/// CamSchool BaaS Flutter SDK
+/// CamSchool BaaS Flutter SDK
 /// 
 /// Official Flutter / Dart client for CamSchool Backend-as-a-Service.
 /// Provides Firestore-like NoSQL JSON document store, Authentication (Email, Phone OTP, Anonymous),
@@ -12,3 +12,7 @@ export 'src/storage.dart';
 export 'src/notifications.dart';
 export 'src/exceptions.dart';
 export 'src/models.dart';
+
+export 'src/payments.dart';
+export 'src/widgets/baas_payment_modal.dart';
+export 'src/widgets/baas_payout_modal.dart';

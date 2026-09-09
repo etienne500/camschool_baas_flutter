@@ -1,4 +1,4 @@
-﻿import 'client.dart';
+import 'client.dart';
 import 'models.dart';
 
 /// Database Manager (Firestore-like NoSQL)
@@ -39,7 +39,7 @@ class BaasCollectionReference extends BaasQuery {
       body: {'data': data},
     );
 
-    final docData = res['data'] is Map<String, dynamic> ? res['data'] : {};
+    final docData = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : <String, dynamic>{};
     final docId = (docData['document_id'] ?? docData['id'] ?? '').toString();
     return doc(docId);
   }
@@ -76,7 +76,7 @@ class BaasQuery {
   BaasQuery whereLessThanOrEqualTo(String field, dynamic value) => where(field, '<=', value);
   BaasQuery whereIn(String field, List<dynamic> values) => where(field, 'in', values);
   BaasQuery whereContains(String field, dynamic value) => where(field, 'contains', value);
-  
+
   /// Order documents by a field
   BaasQuery orderBy(String field, {bool descending = false}) {
     final query = _clone();
@@ -84,7 +84,7 @@ class BaasQuery {
     query._orderDirection = descending ? 'desc' : 'asc';
     return query;
   }
-   
+
   /// Limit the number of documents returned
   BaasQuery limit(int count) {
     final query = _clone();
@@ -128,7 +128,7 @@ class BaasQuery {
     final rawList = res['data'] is List ? res['data'] as List : [];
     return rawList
         .map((item) => BaasDocumentSnapshot.fromMap(
-              item is Map<String, dynamic> ? item : {},
+              item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{},
               collection: _collectionName,
             ))
         .toList();
@@ -157,7 +157,7 @@ class BaasDocumentReference {
       'collections/$collectionName/documents/$documentId',
     );
 
-    final rawData = res['data'] is Map<String, dynamic> ? res['data'] as Map<String, dynamic> : {};
+    final rawData = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : <String, dynamic>{};
     return BaasDocumentSnapshot.fromMap(rawData, collection: collectionName);
   }
 

@@ -1,4 +1,4 @@
-﻿/// BaaS User Model
+/// BaaS User Model
 class BaasUser {
   final String id;
   final String? email;
@@ -23,12 +23,12 @@ class BaasUser {
   factory BaasUser.fromMap(Map<String, dynamic> map) {
     return BaasUser(
       id: (map['id'] ?? map['user_id'] ?? '').toString(),
-      email: map['email'],
-      phoneNumber: map['phone_number'] ?? map['phone'],
-      displayName: map['display_name'] ?? map['name'],
-      avatarUrl: map['avatar_url'] ?? map['photo_url'],
-      isAnonymous: map['is_anonymous'] ?? false,
-      metadata: map['metadata'] is Map<String, dynamic> ? map['metadata'] : {},
+      email: map['email']?.toString(),
+      phoneNumber: (map['phone_number'] ?? map['phone'])?.toString(),
+      displayName: (map['display_name'] ?? map['name'])?.toString(),
+      avatarUrl: (map['avatar_url'] ?? map['photo_url'])?.toString(),
+      isAnonymous: map['is_anonymous'] == true,
+      metadata: map['metadata'] is Map ? Map<String, dynamic>.from(map['metadata'] as Map) : {},
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
     );
   }
@@ -72,8 +72,8 @@ class BaasDocumentSnapshot {
   factory BaasDocumentSnapshot.fromMap(Map<String, dynamic> map, {String? collection}) {
     final rawData = map['data'];
     Map<String, dynamic> docData = {};
-    if (rawData is Map<String, dynamic>) {
-      docData = rawData;
+    if (rawData is Map) {
+      docData = Map<String, dynamic>.from(rawData);
     } else if (map.containsKey('data') && map['data'] == null) {
       docData = {};
     } else {
@@ -87,7 +87,7 @@ class BaasDocumentSnapshot {
 
     return BaasDocumentSnapshot(
       id: (map['document_id'] ?? map['id'] ?? '').toString(),
-      collection: collection ?? map['collection'] ?? '',
+      collection: collection ?? map['collection']?.toString() ?? '',
       data: docData,
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
@@ -116,14 +116,30 @@ class BaasFileMetadata {
   });
 
   factory BaasFileMetadata.fromMap(Map<String, dynamic> map) {
+    final urlStr = (map['url'] ?? map['public_url'] ?? map['download_url'] ?? map['signed_url'] ?? '').toString();
+    final sizeVal = map['size'] ?? map['size_bytes'] ?? map['file_size'];
+    final sizeInt = sizeVal is num ? sizeVal.toInt() : int.tryParse(sizeVal?.toString() ?? '0') ?? 0;
+
     return BaasFileMetadata(
       id: (map['id'] ?? '').toString(),
-      path: map['path'] ?? '',
-      filename: map['filename'] ?? map['original_name'] ?? '',
-      url: map['url'] ?? '',
-      size: map['size'] ?? 0,
-      mimeType: map['mime_type'],
+      path: map['path']?.toString() ?? '',
+      filename: (map['filename'] ?? map['original_name'] ?? map['name'] ?? '')?.toString() ?? '',
+      url: urlStr,
+      size: sizeInt,
+      mimeType: (map['mime_type'] ?? map['mimetype'] ?? map['content_type'])?.toString(),
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'path': path,
+      'filename': filename,
+      'url': url,
+      'size': size,
+      'mime_type': mimeType,
+      'created_at': createdAt?.toIso8601String(),
+    };
   }
 }
