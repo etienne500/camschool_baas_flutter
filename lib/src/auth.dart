@@ -190,6 +190,45 @@ class BaasAuth {
     return _currentUser!;
   }
 
+  /// Send a 4-digit OTP code to the user's email for password reset (valid 5 minutes).
+  Future<Map<String, dynamic>> sendPasswordResetEmail({
+    required String email,
+  }) async {
+    final res = await _client.request('POST', 'auth/password/forgot-email', body: {
+      'email': email.trim().toLowerCase(),
+    });
+    return res is Map<String, dynamic> ? res : {'success': true, 'message': 'Code envoyé'};
+  }
+
+  /// Confirm password reset with the 4-digit OTP code received by email.
+  Future<Map<String, dynamic>> resetPasswordWithEmailOtp({
+    required String email,
+    required String code,
+    required String newPassword,
+    String? token,
+  }) async {
+    final res = await _client.request('POST', 'auth/password/reset-email', body: {
+      'email': email.trim().toLowerCase(),
+      'code': code.trim(),
+      'new_password': newPassword,
+      if (token != null) 'token': token,
+    });
+
+    final data = res['data'] ?? {};
+    final jwtToken = data['tokens']?['access_token'] ?? data['token'];
+    if (jwtToken != null) {
+      await _client.setAuthToken(jwtToken.toString());
+    }
+
+    final userData = data['user'] is Map<String, dynamic> ? data['user'] : null;
+    if (userData != null) {
+      _currentUser = BaasUser.fromMap(userData);
+      _authStateController.add(_currentUser);
+    }
+
+    return res is Map<String, dynamic> ? res : {'success': true};
+  }
+
   /// Sign out the current user and clear stored token.
   Future<void> signOut() async {
     await _client.setAuthToken(null);
