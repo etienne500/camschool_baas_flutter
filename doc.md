@@ -1,4 +1,4 @@
-﻿# 🚀 CamSchool BaaS — Guide Complet & Documentation Officielle du SDK Flutter
+# 🚀 CamSchool BaaS — Guide Complet & Documentation Officielle du SDK Flutter
 
 > **Package :** `camschool_baas_flutter`  
 > **Version :** `1.0.0`  
@@ -474,6 +474,46 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 }
+```
+
+---
+
+## 8. 💬 Messagerie SMS & Emails
+
+### 8.1 Envoi de SMS (25 FCFA / SMS)
+
+Le module SMS permet de notifier directement vos étudiants, clients ou administrateurs par SMS avec suivi en direct.
+
+```dart
+// Envoi d'un SMS unitaire (25 FCFA)
+final smsResult = await BaaS.instance.sms.send(
+  to: '+237655797860',
+  message: 'Rappel : Votre cours de Mathématiques commence à 15h.',
+  senderId: 'CamSchool',
+);
+
+print('SMS envoyé : ${smsResult.success}');
+print('Coût total : ${smsResult.totalCost} ${smsResult.currency}'); // 25.0 XAF
+
+// Envoi de SMS groupés
+final bulkResult = await BaaS.instance.sms.sendBulk(
+  recipients: ['+237655797860', '+237697336094'],
+  message: 'Nouvelle publication disponible sur votre espace.',
+);
+print('Envoyés : ${bulkResult.sentCount} / Coût : ${bulkResult.totalCost} FCFA');
+```
+
+### 8.2 Envoi d'Emails Transactionnels
+
+```dart
+final emailResult = await BaaS.instance.mail.send(
+  to: 'parent@camschool.cm',
+  subject: 'Convocation réunion parents-enseignants',
+  html: '<h2>Chers parents,</h2><p>Vous êtes conviés ce samedi à 10h.</p>',
+  fromName: 'Direction CamSchool',
+  replyTo: 'contact@camschool.cm',
+);
+print('Email expédié : ${emailResult.success}');
 ```
 
 ---

@@ -19,9 +19,10 @@
 5. [🗄️ Base de Données NoSQL (BaasDatabase)](#️-base-de-données-nosql-baasdatabase)
 6. [☁️ Cloud Storage (BaasStorage)](#️-cloud-storage-baasstorage)
 7. [🔔 Notifications Push (BaasNotifications)](#-notifications-push-baasnotifications)
-8. [💳 Module Paiements Hosted Checkout & Webhooks](#-module-paiements-hosted-checkout--webhooks)
-9. [🛡️ Sécurité & Bonnes Pratiques](#️-sécurité--bonnes-pratiques)
-10. [📄 Licence & Support](#-licence--support)
+8. [💬 Messagerie SMS & Emails (BaasSms & BaasMail)](#-messagerie-sms--emails-baassms--baasmail)
+9. [💳 Module Paiements Hosted Checkout & Webhooks](#-module-paiements-hosted-checkout--webhooks)
+10. [🛡️ Sécurité & Bonnes Pratiques](#️-sécurité--bonnes-pratiques)
+11. [📄 Licence & Support](#-licence--support)
 
 ---
 
@@ -44,6 +45,10 @@
   * Gestion des dossiers, métadonnées et URLs d'accès direct sécurisées.
 * 🔔 **Push Notifications** :
   * Enregistrement en un clic des tokens FCM / APNs liés à l'utilisateur connecté.
+* 💬 **Messagerie SMS & Emails Transactionnels** :
+  * Envoi de **SMS facturés à 25 FCFA / SMS** (envois unitaires ou bulk vers plusieurs destinataires).
+  * Envoi d'**Emails transactionnels HTML ou texte brut** avec expéditeur, Reply-To et pièces jointes.
+  * Journalisation et historique consultable en temps réel.
 * 💳 **Paiements Hosted Checkout Multi-Passerelles (BaaS Pay)** :
   * Moyens de paiement supportés : **`'orange_money'`**, **`'mtn_momo'`**, **`'PayPal'`**, **`'card'`** (Visa/Mastercard).
   * Génération de sessions sécurisées (`checkout_url`) pour redirection web ou WebView in-app.
@@ -278,6 +283,64 @@ await BaaS.instance.notifications.registerDevice(
   fcmToken: 'ebF7MLYdSaatEbLOAJnUxc:APA91bGOIbkPEg...',
   platform: 'android', // 'android' | 'ios' | 'web'
 );
+```
+
+---
+
+## 💬 Messagerie SMS & Emails (BaasSms & BaasMail)
+
+Envoyez facilement des SMS transactionnels et des emails depuis votre application Flutter ou votre backend Dart.
+
+> 💰 **Facturation SMS :** Les SMS sont facturés à **25 FCFA (25 frs) par SMS**. Le coût est automatiquement débité et tracé au niveau du projet.
+
+### 1. Envoi de SMS (Unitaire ou en Masse)
+
+```dart
+// Envoi d'un SMS unitaire (Coût : 25 FCFA)
+try {
+  BaasSmsResponse res = await BaaS.instance.sms.send(
+    to: '+237655797860',
+    message: 'Votre commande #CMD_1029 a bien été validée.',
+    senderId: 'CamSchool', // Optionnel (jusqu'à 11 caractères)
+  );
+
+  print('SMS envoyé avec succès : ${res.success}');
+  print('Coût total débité : ${res.totalCost} ${res.currency}'); // 25.0 XAF
+} on BaasException catch (e) {
+  print('Erreur SMS : ${e.message}');
+}
+
+// Envoi de SMS groupés (Bulk)
+BaasSmsResponse bulkRes = await BaaS.instance.sms.sendBulk(
+  recipients: ['+237655797860', '+237697336094', '+237670000000'],
+  message: 'Rappel : Événement spécial demain matin dès 9h00.',
+);
+
+print('Nombre de SMS envoyés : ${bulkRes.sentCount}');
+print('Coût total : ${bulkRes.totalCost} FCFA'); // 75.0 XAF
+```
+
+### 2. Envoi d'Emails Transactionnels
+
+```dart
+try {
+  BaasEmailResponse mailRes = await BaaS.instance.mail.send(
+    to: 'etudiant@camschool.cm',
+    subject: 'Confirmation de votre inscription',
+    html: '''
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color: #0284c7;">Bienvenue sur CamSchool !</h2>
+        <p>Votre compte a été activé avec succès.</p>
+      </div>
+    ''',
+    fromName: 'Service des Admissions',
+    replyTo: 'admissions@camschool.cm',
+  );
+
+  print('Email envoyé : ${mailRes.success}');
+} on BaasException catch (e) {
+  print('Erreur Email : ${e.message}');
+}
 ```
 
 ---

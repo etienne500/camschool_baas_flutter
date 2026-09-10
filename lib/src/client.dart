@@ -6,6 +6,7 @@ import 'database.dart';
 import 'storage.dart';
 import 'payments.dart';
 import 'notifications.dart';
+import 'messaging.dart';
 import 'exceptions.dart';
 
 /// Main CamSchool BaaS Client
@@ -24,6 +25,9 @@ class BaaS {
   late final BaasStorage storage;
   late final BaasPayments payments;
   late final BaasNotifications notifications;
+  late final BaasSms sms;
+  late final BaasMail mail;
+  late final BaasMessaging messaging;
 
   BaaS._internal({
     required this.baseUrl,
@@ -36,6 +40,9 @@ class BaaS {
     storage = BaasStorage(this);
     payments = BaasPayments(this);
     notifications = BaasNotifications(this);
+    sms = BaasSms(this);
+    mail = BaasMail(this);
+    messaging = BaasMessaging(this);
   }
 
   /// Initialize the BaaS Singleton instance.

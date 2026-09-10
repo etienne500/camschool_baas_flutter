@@ -143,3 +143,127 @@ class BaasFileMetadata {
     };
   }
 }
+
+/// BaaS SMS Send Detail
+class BaasSmsDetail {
+  final String to;
+  final String status;
+  final String? messageId;
+  final double cost;
+  final String? error;
+
+  BaasSmsDetail({
+    required this.to,
+    required this.status,
+    this.messageId,
+    this.cost = 25.0,
+    this.error,
+  });
+
+  factory BaasSmsDetail.fromMap(Map<String, dynamic> map) {
+    final costVal = map['cost'] ?? 25.0;
+    return BaasSmsDetail(
+      to: (map['to'] ?? '').toString(),
+      status: (map['status'] ?? 'sent').toString(),
+      messageId: map['message_id']?.toString(),
+      cost: costVal is num ? costVal.toDouble() : double.tryParse(costVal.toString()) ?? 25.0,
+      error: map['error']?.toString(),
+    );
+  }
+}
+
+/// BaaS SMS Response
+class BaasSmsResponse {
+  final bool success;
+  final int count;
+  final int sentCount;
+  final int failedCount;
+  final double pricePerSms;
+  final double totalCost;
+  final String currency;
+  final List<BaasSmsDetail> details;
+
+  BaasSmsResponse({
+    required this.success,
+    this.count = 1,
+    this.sentCount = 1,
+    this.failedCount = 0,
+    this.pricePerSms = 25.0,
+    this.totalCost = 25.0,
+    this.currency = 'XAF',
+    this.details = const [],
+  });
+
+  factory BaasSmsResponse.fromMap(Map<String, dynamic> map) {
+    final rawDetails = map['details'] as List? ?? [];
+    final detailsList = rawDetails.map((d) => BaasSmsDetail.fromMap(Map<String, dynamic>.from(d as Map))).toList();
+
+    final priceVal = map['price_per_sms'] ?? 25.0;
+    final totalCostVal = map['total_cost'] ?? 25.0;
+
+    return BaasSmsResponse(
+      success: map['success'] == true,
+      count: (map['count'] is num) ? (map['count'] as num).toInt() : int.tryParse(map['count']?.toString() ?? '1') ?? 1,
+      sentCount: (map['sent_count'] is num) ? (map['sent_count'] as num).toInt() : int.tryParse(map['sent_count']?.toString() ?? '1') ?? 1,
+      failedCount: (map['failed_count'] is num) ? (map['failed_count'] as num).toInt() : int.tryParse(map['failed_count']?.toString() ?? '0') ?? 0,
+      pricePerSms: priceVal is num ? priceVal.toDouble() : double.tryParse(priceVal.toString()) ?? 25.0,
+      totalCost: totalCostVal is num ? totalCostVal.toDouble() : double.tryParse(totalCostVal.toString()) ?? 25.0,
+      currency: (map['currency'] ?? 'XAF').toString(),
+      details: detailsList,
+    );
+  }
+}
+
+/// BaaS Email Send Detail
+class BaasEmailDetail {
+  final String to;
+  final String status;
+  final String? error;
+
+  BaasEmailDetail({
+    required this.to,
+    required this.status,
+    this.error,
+  });
+
+  factory BaasEmailDetail.fromMap(Map<String, dynamic> map) {
+    return BaasEmailDetail(
+      to: (map['to'] ?? '').toString(),
+      status: (map['status'] ?? 'sent').toString(),
+      error: map['error']?.toString(),
+    );
+  }
+}
+
+/// BaaS Email Response
+class BaasEmailResponse {
+  final bool success;
+  final int count;
+  final int sentCount;
+  final int failedCount;
+  final String subject;
+  final List<BaasEmailDetail> details;
+
+  BaasEmailResponse({
+    required this.success,
+    this.count = 1,
+    this.sentCount = 1,
+    this.failedCount = 0,
+    required this.subject,
+    this.details = const [],
+  });
+
+  factory BaasEmailResponse.fromMap(Map<String, dynamic> map) {
+    final rawDetails = map['details'] as List? ?? [];
+    final detailsList = rawDetails.map((d) => BaasEmailDetail.fromMap(Map<String, dynamic>.from(d as Map))).toList();
+
+    return BaasEmailResponse(
+      success: map['success'] == true,
+      count: (map['count'] is num) ? (map['count'] as num).toInt() : int.tryParse(map['count']?.toString() ?? '1') ?? 1,
+      sentCount: (map['sent_count'] is num) ? (map['sent_count'] as num).toInt() : int.tryParse(map['sent_count']?.toString() ?? '1') ?? 1,
+      failedCount: (map['failed_count'] is num) ? (map['failed_count'] as num).toInt() : int.tryParse(map['failed_count']?.toString() ?? '0') ?? 0,
+      subject: (map['subject'] ?? '').toString(),
+      details: detailsList,
+    );
+  }
+}
