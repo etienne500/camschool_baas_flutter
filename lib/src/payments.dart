@@ -191,6 +191,8 @@ class BaasCheckoutSessionResult {
   final String? successUrl;
   final String? failUrl;
   final String message;
+  final String? ussdPrompt;
+  final String? paymentUrl;
 
   BaasCheckoutSessionResult({
     required this.success,
@@ -206,14 +208,17 @@ class BaasCheckoutSessionResult {
     this.successUrl,
     this.failUrl,
     required this.message,
+    this.ussdPrompt,
+    this.paymentUrl,
   });
 
   factory BaasCheckoutSessionResult.fromMap(Map<String, dynamic> map) {
+    final cUrl = (map['checkout_url'] ?? map['payment_url'] ?? '').toString();
     return BaasCheckoutSessionResult(
       success: map['success'] == true,
       transactionId: map['transaction_id'],
       reference: map['reference'] ?? '',
-      checkoutUrl: map['checkout_url'] ?? '',
+      checkoutUrl: cUrl,
       status: map['status'] ?? 'pending',
       grossAmount: (map['gross_amount'] as num?)?.toDouble() ?? 0.0,
       currency: map['currency'] ?? 'XAF',
@@ -225,6 +230,8 @@ class BaasCheckoutSessionResult {
       successUrl: map['success_url'],
       failUrl: map['fail_url'],
       message: map['message'] ?? 'Session générée',
+      ussdPrompt: map['ussd_prompt'] ?? map['ussdPrompt'],
+      paymentUrl: cUrl,
     );
   }
 }
