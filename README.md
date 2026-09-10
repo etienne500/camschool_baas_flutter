@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Client Flutter / Dart officiel pour CamSchool BaaS (Backend-as-a-Service).**  
-> Alternative souveraine, ultra-rapide et tout-en-un à Firebase / Supabase spécialement optimisée pour les applications mobiles et web : base de données NoSQL Firestore-like, Authentification multi-canal (Email, Téléphone avec mot de passe ou SMS OTP, Anonyme), Cloud Storage, Notifications Push et **Paiements & Retraits Mobile Money & Internationaux intégrés (`orange_money`, `mtn_momo`, `PayPal`, `card`)**.
+> Alternative souveraine, ultra-rapide et tout-en-un à Firebase / Supabase spécialement optimisée pour les applications mobiles et web : base de données NoSQL Firestore-like, Authentification multi-canal (Email, Téléphone avec mot de passe ou SMS OTP, Anonyme), Cloud Storage, Notifications Push et **Paiements Hosted Checkout multi-passerelles (`orange_money`, `mtn_momo`, `PayPal`, `card`)**. *(Les retraits de fonds s'effectuent directement depuis le tableau de bord utilisateur de la plateforme).*
 
 ---
 
@@ -19,7 +19,7 @@
 5. [🗄️ Base de Données NoSQL (BaasDatabase)](#️-base-de-données-nosql-baasdatabase)
 6. [☁️ Cloud Storage (BaasStorage)](#️-cloud-storage-baasstorage)
 7. [🔔 Notifications Push (BaasNotifications)](#-notifications-push-baasnotifications)
-8. [💳 Paiements & Retraits Universels (`orange_money`, `mtn_momo`, `PayPal`, `card`)](#-paiements--retraits-universels)
+8. [💳 Module Paiements Hosted Checkout & Webhooks](#-module-paiements-hosted-checkout--webhooks)
 9. [🛡️ Sécurité & Bonnes Pratiques](#️-sécurité--bonnes-pratiques)
 10. [📄 Licence & Support](#-licence--support)
 
@@ -44,11 +44,11 @@
   * Gestion des dossiers, métadonnées et URLs d'accès direct sécurisées.
 * 🔔 **Push Notifications** :
   * Enregistrement en un clic des tokens FCM / APNs liés à l'utilisateur connecté.
-* 💳 **Paiements & Retraits Universels (BaaS Pay)** :
-  * Moyens de paiement intégrés : **`'orange_money'`**, **`'mtn_momo'`**, **`'PayPal'`**, **`'card'`** (Visa/Mastercard).
-  * Encaissement (*PayIn*) et Retrait direct (*PayOut*).
-  * Widgets modaux Flutter prêts à l'emploi (`showBaasPaymentModal`, `showBaasPayoutModal`).
-  * Polling automatique ou webhooks en direct.
+* 💳 **Paiements Hosted Checkout Multi-Passerelles (BaaS Pay)** :
+  * Moyens de paiement supportés : **`'orange_money'`**, **`'mtn_momo'`**, **`'PayPal'`**, **`'card'`** (Visa/Mastercard).
+  * Génération de sessions sécurisées (`checkout_url`) pour redirection web ou WebView in-app.
+  * Notifications IPN Webhook avec signature HMAC SHA256 et écoute réactive (`pollTransactionStatus`).
+  * *Note : Les retraits de solde sont gérés de manière sécurisée et exclusive depuis le tableau de bord utilisateur de la plateforme.*
 
 ---
 
@@ -282,14 +282,13 @@ await BaaS.instance.notifications.registerDevice(
 
 ---
 
----
+## 💳 Module Paiements, Liens Hosted Checkout & Webhooks
 
-## 💳 Paiements, Liens Hosted Checkout & Webhooks
+Le module de paiement BaaS pour Flutter permet de **générer des liens de paiement hébergés uniques (`checkout_url`)** avec sélection multi-passerelles (Orange Money, MTN MoMo, Carte Bancaire, PayPal, Express Union), redirection vers vos URLs et notification instantanée vers `notify_url` (IPN Webhook signé).
 
-Le SDK Flutter vous permet d'initier des paiements directs (PayIn), des retraits (PayOut) ou de **générer un lien de paiement hébergé unique (`checkout_url`)** pour ouvrir la page web sécurisée multi-opérateurs.
-
-> 💡 **Configuration des Passerelles & URLs :**  
-> Depuis la console BaaS, activez les méthodes de paiement autorisées (Orange Money, MTN MoMo, Carte, PayPal, Express Union) et configurez vos URLs de notification (`notify_url`) et de retour (`success_url`, `fail_url`). Les URLs fournies dans vos requêtes SDK écrasent les configurations par défaut.
+> 💡 **Configuration Générale du Projet & Retraits :**  
+> - Activez/désactivez les passerelles et configurez les URLs par défaut (`notify_url`, `success_url`, `fail_url`) depuis la console BaaS.
+> - **Retraits de solde :** Les retraits de fonds s'effectuent de manière sécurisée et exclusive depuis le tableau de bord développeur de la plateforme (0% de commission).
 
 ### 1. Générer une Session Hosted Checkout (Lien Unique de Redirection)
 
@@ -304,7 +303,7 @@ final session = await BaaS.instance.payments.createCheckoutSession(
   notifyUrl: 'https://monsite.com/api/payment/webhook',
   successUrl: 'https://monsite.com/commande/succes',
   failUrl: 'https://monsite.com/commande/annulee',
-  allowedMethods: ['ORANGE_MONEY', 'MTN_MOMO', 'CARD'],
+  allowedMethods: ['ORANGE_MONEY', 'MTN_MOMO', 'CARD', 'PAYPAL'],
   metadata: {'order_id': 'CMD_7781'},
 );
 
@@ -317,21 +316,21 @@ print('Référence : ${session.reference}');
 
 ---
 
-### 2. Modal de Paiement Flutter Intégré (UI Clé en Main)
+### 2. Modal de Paiement Flutter Clé-en-Main
 
 ```dart
-await showBaasPaymentModal(
-  context: context,
+await BaasPaymentModal.show(
+  context,
   amount: 3000, // Montant en FCFA
   description: 'Achat du livre NGÙL LEKAN',
-  customerPhone: '697336094',
+  initialPhone: '697336094',
   customerName: 'Adonis BOPDA',
   onSuccess: (transaction) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Paiement validé : ${transaction.reference}')),
     );
   },
-  onFailure: (error) {
+  onError: (error) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Échec du paiement : $error')),
     );
@@ -341,25 +340,7 @@ await showBaasPaymentModal(
 
 ---
 
-### 3. Modal de Retrait (PayOut - 0% Frais)
-
-```dart
-await showBaasPayoutModal(
-  context: context,
-  amount: 25000,
-  beneficiaryPhone: '697336094',
-  beneficiaryName: 'Auteur BDSTARS',
-  onSuccess: (payout) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Demande de retrait enregistrée : ${payout.reference}')),
-    );
-  },
-);
-```
-
----
-
-### 4. Suivi Réactif d'une Transaction (Stream Polling)
+### 3. Suivi Réactif d'une Transaction (Stream Polling)
 
 ```dart
 BaaS.instance.payments.pollTransactionStatus(session.reference).listen((tx) {
@@ -368,27 +349,6 @@ BaaS.instance.payments.pollTransactionStatus(session.reference).listen((tx) {
     print('Paiement validé ! Montant Net : ${tx.netAmount} ${tx.currency}');
   }
 });
-```
-
----
-
-### 5. API Programmatique Directe (PayIn / PayOut)
-
-```dart
-// 1. Déclencher un paiement Orange Money ou MTN MoMo en API directe
-var result = await BaaS.instance.payments.initiatePayin(
-  amount: 3000,
-  paymentMethod: 'orange_money', // 'orange_money' | 'mtn_momo' | 'PayPal' | 'card'
-  phone: '697336094',
-  customerName: 'Kengne BOPDA',
-  description: 'Achat NGÙL LEKAN',
-);
-
-print('Transaction initiée : ${result.transactionId}');
-
-// 2. Vérifier le statut de la transaction
-var status = await BaaS.instance.payments.getTransactionStatus(result.transactionId.toString());
-print('Statut : ${status.status}'); // pending, success, failed
 ```
 
 ---

@@ -176,54 +176,6 @@ class BaasPayinResult {
   }
 }
 
-/// Résultat d'une initiation PayOut (Retrait)
-class BaasPayoutResult {
-  final bool success;
-  final dynamic payoutId;
-  final String reference;
-  final String status;
-  final double grossAmount;
-  final double feeRate;
-  final double feeAmount;
-  final double netAmount;
-  final String currency;
-  final String paymentMethod;
-  final String? phone;
-  final String message;
-
-  BaasPayoutResult({
-    required this.success,
-    required this.payoutId,
-    required this.reference,
-    required this.status,
-    required this.grossAmount,
-    required this.feeRate,
-    required this.feeAmount,
-    required this.netAmount,
-    required this.currency,
-    required this.paymentMethod,
-    this.phone,
-    required this.message,
-  });
-
-  factory BaasPayoutResult.fromMap(Map<String, dynamic> map) {
-    return BaasPayoutResult(
-      success: map['success'] == true,
-      payoutId: map['payout_id'],
-      reference: map['reference'] ?? '',
-      status: map['status'] ?? 'processing',
-      grossAmount: (map['gross_amount'] as num?)?.toDouble() ?? 0.0,
-      feeRate: (map['fee_rate'] as num?)?.toDouble() ?? 0.0,
-      feeAmount: (map['fee_amount'] as num?)?.toDouble() ?? 0.0,
-      netAmount: (map['net_amount'] as num?)?.toDouble() ?? 0.0,
-      currency: map['currency'] ?? 'XAF',
-      paymentMethod: map['payment_method'] ?? 'MTN_MOMO',
-      phone: map['phone'],
-      message: map['message'] ?? 'Retrait en cours de traitement',
-    );
-  }
-}
-
 /// Résultat de la création d'une session de paiement hébergée
 class BaasCheckoutSessionResult {
   final bool success;
@@ -277,13 +229,13 @@ class BaasCheckoutSessionResult {
   }
 }
 
-/// Module de Paiements & Retraits CamSchool BaaS
+/// Module de Paiements CamSchool BaaS (Hosted Checkout & Webhooks)
 class BaasPayments {
   final BaaS _client;
 
   BaasPayments(this._client);
 
-  /// Récupérer les moyens de paiement actifs et les pourcentages de frais (7% PayIn / 0% PayOut par défaut)
+  /// Récupérer les moyens de paiement actifs et les pourcentages de frais (7% PayIn par défaut)
   Future<List<BaasPaymentMethod>> getPaymentMethods() async {
     final res = await _client.request('GET', 'payments/methods');
     final rawList = res['data'] is List ? res['data'] as List : [];
@@ -313,7 +265,7 @@ class BaasPayments {
     final payload = {
       'amount': amount,
       'currency': currency,
-      if (allowedMethods != null) 'allowed_methods': allowedMethods,
+      'allowed_methods': allowedMethods ?? ['ORANGE_MONEY', 'MTN_MOMO', 'CARD', 'PAYPAL'],
       if (customerName != null) 'customer_name': customerName,
       if (customerEmail != null) 'customer_email': customerEmail,
       if (phone != null) 'phone': phone,
@@ -328,10 +280,10 @@ class BaasPayments {
     return BaasCheckoutSessionResult.fromMap(res);
   }
 
-  /// Initier un Paiement / Encaissement Direct (PayIn) - Commission 7% (configurable)
-  Future<BaasPayinResult> initiatePayin({
+  /// @deprecated Utilisez createCheckoutSession() pour obtenir une URL de paiement sécurisée (checkout_url).
+  Future<BaasCheckoutSessionResult> initiatePayin({
     required double amount,
-    required String paymentMethod, // 'orange_money', 'mtn_momo', 'PayPal', 'card'
+    String? paymentMethod,
     String? phone,
     String? customerName,
     String? customerEmail,
@@ -341,52 +293,21 @@ class BaasPayments {
     String? returnUrl,
     Map<String, dynamic>? metadata,
   }) async {
-    final payload = {
-      'amount': amount,
-      'payment_method': paymentMethod,
-      'phone': phone,
-      'customer_name': customerName,
-      'customer_email': customerEmail,
-      'description': description,
-      'currency': currency,
-      'callback_url': callbackUrl,
-      'return_url': returnUrl,
-      'metadata': metadata,
-    };
-
-    final res = await _client.request('POST', 'payments/payin', body: payload);
-    final data = res['data'] is Map<String, dynamic> ? res['data'] : res;
-    return BaasPayinResult.fromMap(data);
+    return createCheckoutSession(
+      amount: amount,
+      currency: currency,
+      phone: phone,
+      customerName: customerName,
+      customerEmail: customerEmail,
+      description: description,
+      callbackUrl: callbackUrl,
+      returnUrl: returnUrl,
+      metadata: metadata,
+      allowedMethods: paymentMethod != null ? [paymentMethod.toUpperCase()] : ['ORANGE_MONEY', 'MTN_MOMO', 'CARD', 'PAYPAL'],
+    );
   }
 
-  /// Initier un Retrait / Décaissement (PayOut) - Commission 0% (Gratuit)
-  Future<BaasPayoutResult> initiatePayout({
-    required double amount,
-    required String paymentMethod, // 'MTN_MOMO', 'ORANGE_MONEY', 'EU_MOBILE'
-    required String phone,
-    String? beneficiaryName,
-    String? description,
-    String? currency = 'XAF',
-    String? callbackUrl,
-    Map<String, dynamic>? metadata,
-  }) async {
-    final payload = {
-      'amount': amount,
-      'payment_method': paymentMethod,
-      'phone': phone,
-      'beneficiary_name': beneficiaryName,
-      'description': description,
-      'currency': currency,
-      'callback_url': callbackUrl,
-      'metadata': metadata,
-    };
-
-    final res = await _client.request('POST', 'payments/payout', body: payload);
-    final data = res['data'] is Map<String, dynamic> ? res['data'] : res;
-    return BaasPayoutResult.fromMap(data);
-  }
-
-  /// Vérifier le statut en temps réel d'une transaction (Paiement ou Retrait)
+  /// Vérifier le statut en temps réel d'une transaction de paiement
   Future<BaasTransaction> getTransactionStatus(String transactionIdOrReference) async {
     final res = await _client.request('GET', 'payments/status/$transactionIdOrReference');
     final data = res['data'] is Map<String, dynamic> ? res['data'] : res;
@@ -395,7 +316,7 @@ class BaasPayments {
 
   /// Lister l'historique des transactions
   Future<List<BaasTransaction>> listTransactions({
-    String? type, // 'payin' ou 'payout'
+    String? type,
     String? status, // 'success', 'pending', 'failed'
     String? paymentMethod,
     int limit = 20,

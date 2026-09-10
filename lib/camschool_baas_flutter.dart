@@ -15,4 +15,3 @@ export 'src/models.dart';
 
 export 'src/payments.dart';
 export 'src/widgets/baas_payment_modal.dart';
-export 'src/widgets/baas_payout_modal.dart';
