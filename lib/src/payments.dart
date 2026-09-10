@@ -224,6 +224,59 @@ class BaasPayoutResult {
   }
 }
 
+/// Résultat de la création d'une session de paiement hébergée
+class BaasCheckoutSessionResult {
+  final bool success;
+  final dynamic transactionId;
+  final String reference;
+  final String checkoutUrl;
+  final String status;
+  final double grossAmount;
+  final String currency;
+  final String? description;
+  final List<String> allowedMethods;
+  final String? notifyUrl;
+  final String? successUrl;
+  final String? failUrl;
+  final String message;
+
+  BaasCheckoutSessionResult({
+    required this.success,
+    required this.transactionId,
+    required this.reference,
+    required this.checkoutUrl,
+    required this.status,
+    required this.grossAmount,
+    required this.currency,
+    this.description,
+    required this.allowedMethods,
+    this.notifyUrl,
+    this.successUrl,
+    this.failUrl,
+    required this.message,
+  });
+
+  factory BaasCheckoutSessionResult.fromMap(Map<String, dynamic> map) {
+    return BaasCheckoutSessionResult(
+      success: map['success'] == true,
+      transactionId: map['transaction_id'],
+      reference: map['reference'] ?? '',
+      checkoutUrl: map['checkout_url'] ?? '',
+      status: map['status'] ?? 'pending',
+      grossAmount: (map['gross_amount'] as num?)?.toDouble() ?? 0.0,
+      currency: map['currency'] ?? 'XAF',
+      description: map['description'],
+      allowedMethods: (map['allowed_methods'] is List)
+          ? (map['allowed_methods'] as List).map((e) => e.toString()).toList()
+          : [],
+      notifyUrl: map['notify_url'],
+      successUrl: map['success_url'],
+      failUrl: map['fail_url'],
+      message: map['message'] ?? 'Session générée',
+    );
+  }
+}
+
 /// Module de Paiements & Retraits CamSchool BaaS
 class BaasPayments {
   final BaaS _client;
@@ -237,10 +290,48 @@ class BaasPayments {
     return rawList.map((item) => BaasPaymentMethod.fromMap(item)).toList();
   }
 
-  /// Initier un Paiement / Encaissement (PayIn) - Commission 7% (configurable)
+  /// Créer une session de paiement hébergée (Hosted Checkout Session)
+  /// Retourne un lien unique (checkout_url) pour ouvrir la page de paiement WebView ou navigateur.
+  /// À la fin du paiement, CamSchool BaaS notifie automatiquement votre notify_url (IPN Webhook)
+  /// et redirige vers success_url ou fail_url.
+  Future<BaasCheckoutSessionResult> createCheckoutSession({
+    required double amount,
+    String? currency = 'XAF',
+    List<String>? allowedMethods,
+    String? customerName,
+    String? customerEmail,
+    String? phone,
+    String? description,
+    String? notifyUrl,
+    String? successUrl,
+    String? failUrl,
+    String? callbackUrl,
+    String? returnUrl,
+    String? cancelUrl,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final payload = {
+      'amount': amount,
+      'currency': currency,
+      if (allowedMethods != null) 'allowed_methods': allowedMethods,
+      if (customerName != null) 'customer_name': customerName,
+      if (customerEmail != null) 'customer_email': customerEmail,
+      if (phone != null) 'phone': phone,
+      if (description != null) 'description': description,
+      if (notifyUrl != null || callbackUrl != null) 'notify_url': notifyUrl ?? callbackUrl,
+      if (successUrl != null || returnUrl != null) 'success_url': successUrl ?? returnUrl,
+      if (failUrl != null || cancelUrl != null) 'fail_url': failUrl ?? cancelUrl,
+      if (metadata != null) 'metadata': metadata,
+    };
+
+    final res = await _client.request('POST', 'payments/checkout', body: payload);
+    return BaasCheckoutSessionResult.fromMap(res);
+  }
+
+  /// Initier un Paiement / Encaissement Direct (PayIn) - Commission 7% (configurable)
   Future<BaasPayinResult> initiatePayin({
     required double amount,
-    required String paymentMethod, // 'MTN_MOMO', 'ORANGE_MONEY', 'CARD', 'EU_MOBILE'
+    required String paymentMethod, // 'orange_money', 'mtn_momo', 'PayPal', 'card'
     String? phone,
     String? customerName,
     String? customerEmail,

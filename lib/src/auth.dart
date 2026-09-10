@@ -68,6 +68,54 @@ class BaasAuth {
   }
 
   /// Request an SMS OTP code for a phone number.
+    /// Register a new user with phone number and password.
+  Future<BaasUser> signUpWithPhone({
+    required String phoneNumber,
+    required String password,
+    String? displayName,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final res = await _client.request('POST', 'auth/phone/register', body: {
+      'phone_number': phoneNumber,
+      'password': password,
+      if (displayName != null) 'display_name': displayName,
+      if (metadata != null) 'metadata': metadata,
+    });
+
+    final data = res['data'] ?? {};
+    final token = data['token'];
+    if (token != null) {
+      await _client.setAuthToken(token.toString());
+    }
+
+    final userData = data['user'] is Map<String, dynamic> ? data['user'] : data;
+    _currentUser = BaasUser.fromMap(userData);
+    _authStateController.add(_currentUser);
+    return _currentUser!;
+  }
+
+  /// Sign in with phone number and password.
+  Future<BaasUser> signInWithPhone({
+    required String phoneNumber,
+    required String password,
+  }) async {
+    final res = await _client.request('POST', 'auth/phone/login', body: {
+      'phone_number': phoneNumber,
+      'password': password,
+    });
+
+    final data = res['data'] ?? {};
+    final token = data['token'];
+    if (token != null) {
+      await _client.setAuthToken(token.toString());
+    }
+
+    final userData = data['user'] is Map<String, dynamic> ? data['user'] : data;
+    _currentUser = BaasUser.fromMap(userData);
+    _authStateController.add(_currentUser);
+    return _currentUser!;
+  }
+
   Future<Map<String, dynamic>> sendPhoneOtp({
     required String phoneNumber,
   }) async {

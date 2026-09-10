@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Client Flutter / Dart officiel pour CamSchool BaaS (Backend-as-a-Service).**  
-> Alternative souveraine, ultra-rapide et tout-en-un à Firebase / Supabase spécialement optimisée pour les applications mobiles et web : base de données NoSQL Firestore-like, Authentification multi-canal (Email, Téléphone OTP SMS, Anonyme), Cloud Storage, Notifications Push et **Paiements & Retraits Mobile Money intégrés (MTN MoMo, Orange Money, Cartes Bancaires)**.
+> Alternative souveraine, ultra-rapide et tout-en-un à Firebase / Supabase spécialement optimisée pour les applications mobiles et web : base de données NoSQL Firestore-like, Authentification multi-canal (Email, Téléphone avec mot de passe ou SMS OTP, Anonyme), Cloud Storage, Notifications Push et **Paiements & Retraits Mobile Money & Internationaux intégrés (`orange_money`, `mtn_momo`, `PayPal`, `card`)**.
 
 ---
 
@@ -19,7 +19,7 @@
 5. [🗄️ Base de Données NoSQL (BaasDatabase)](#️-base-de-données-nosql-baasdatabase)
 6. [☁️ Cloud Storage (BaasStorage)](#️-cloud-storage-baasstorage)
 7. [🔔 Notifications Push (BaasNotifications)](#-notifications-push-baasnotifications)
-8. [💳 Paiements & Retraits Mobile Money (BaasPay)](#-paiements--retraits-mobile-money-baaspay)
+8. [💳 Paiements & Retraits Universels (`orange_money`, `mtn_momo`, `PayPal`, `card`)](#-paiements--retraits-universels)
 9. [🛡️ Sécurité & Bonnes Pratiques](#️-sécurité--bonnes-pratiques)
 10. [📄 Licence & Support](#-licence--support)
 
@@ -32,10 +32,11 @@
   * Moteur de requêtes avancé (`where`, `orderBy`, `limit`, `offset`, `search`).
   * Opérateurs NoSQL puissants : `==`, `!=`, `>`, `>=`, `<`, `<=`, `in`, `not_in`, `array-contains`, `starts_with`.
   * Incrémentations atomiques `$inc` et fusions de documents.
-* 🔐 **Authentification Complète** :
-  * Inscription / Connexion Email & Mot de passe.
-  * Connexion par Numéro de Téléphone avec envoi automatique de code SMS OTP.
-  * Authentification Anonyme / Invité instantanée.
+* 🔐 **Authentification Complète Multi-Canal** :
+  * Inscription / Connexion par **Numéro de Téléphone / Mot de passe** (`signUpWithPhone`, `signInWithPhone`).
+  * Inscription / Connexion par **Email / Mot de passe** (`signUpWithEmail`, `signInWithEmail`).
+  * Authentification par **SMS OTP** (`sendPhoneOtp`, `verifyPhoneOtp`).
+  * Authentification **Anonyme / Invité** instantanée (`signInAnonymously`).
   * Gestion et persistance automatique de la session (`SharedPreferences`).
   * Flux réactif d'état utilisateur (`Stream<BaasUser?>`).
 * ☁️ **Cloud Storage Haute Performance** :
@@ -43,10 +44,11 @@
   * Gestion des dossiers, métadonnées et URLs d'accès direct sécurisées.
 * 🔔 **Push Notifications** :
   * Enregistrement en un clic des tokens FCM / APNs liés à l'utilisateur connecté.
-* 💳 **Paiements & Retraits Mobile Money (MTN, Orange, Cartes)** :
-  * Encaissement (*PayIn*) et Retrait direct (*PayOut*) via MTN MoMo (*126#) et Orange Money (*150#).
+* 💳 **Paiements & Retraits Universels (BaaS Pay)** :
+  * Moyens de paiement intégrés : **`'orange_money'`**, **`'mtn_momo'`**, **`'PayPal'`**, **`'card'`** (Visa/Mastercard).
+  * Encaissement (*PayIn*) et Retrait direct (*PayOut*).
   * Widgets modaux Flutter prêts à l'emploi (`showBaasPaymentModal`, `showBaasPayoutModal`).
-  * Vérification automatique de statut en polling ou webhook en direct.
+  * Polling automatique ou webhooks en direct.
 
 ---
 
@@ -98,32 +100,30 @@ Accédez ensuite à l'instance partout dans votre application via **`BaaS.instan
 
 ## 🔐 Authentification (BaasAuth)
 
-### 1. Inscription avec Email & Mot de passe
+### 1. Inscription & Connexion par Numéro de Téléphone
 
 ```dart
+// Inscription par Téléphone avec Mot de passe
 try {
-  BaasUser user = await BaaS.instance.auth.signUpWithEmail(
-    email: 'etudiant@camschool.com',
-    password: 'SuperPassword123!',
+  BaasUser user = await BaaS.instance.auth.signUpWithPhone(
+    phoneNumber: '+237655797860',
+    password: 'MonSuperMotDePasse123!',
     displayName: 'Paul Biya',
-    extraData: {
+    metadata: {
       'ville': 'Yaoundé',
-      'filiere': 'Génie Informatique',
+      'statut': 'Auteur',
     },
   );
   print('Utilisateur inscrit avec succès : ${user.id}');
 } on BaasException catch (e) {
-  print('Erreur d\'inscription : ${e.message}');
+  print('Erreur : ${e.message}');
 }
-```
 
-### 2. Connexion avec Email & Mot de passe
-
-```dart
+// Connexion par Téléphone avec Mot de passe
 try {
-  BaasUser user = await BaaS.instance.auth.signInWithEmail(
-    email: 'etudiant@camschool.com',
-    password: 'SuperPassword123!',
+  BaasUser user = await BaaS.instance.auth.signInWithPhone(
+    phoneNumber: '+237655797860',
+    password: 'MonSuperMotDePasse123!',
   );
   print('Connecté en tant que : ${user.displayName}');
 } on BaasException catch (e) {
@@ -131,7 +131,24 @@ try {
 }
 ```
 
-### 3. Authentification par Téléphone (SMS OTP)
+### 2. Inscription & Connexion avec Email / Mot de passe
+
+```dart
+// Inscription par Email
+BaasUser user = await BaaS.instance.auth.signUpWithEmail(
+  email: 'etudiant@camschool.com',
+  password: 'SuperPassword123!',
+  displayName: 'Alexandre',
+);
+
+// Connexion par Email
+BaasUser loggedUser = await BaaS.instance.auth.signInWithEmail(
+  email: 'etudiant@camschool.com',
+  password: 'SuperPassword123!',
+);
+```
+
+### 3. Authentification par SMS OTP
 
 ```dart
 // Étape 1 : Demander l'envoi du code SMS
@@ -143,29 +160,19 @@ await BaaS.instance.auth.sendPhoneOtp(
 BaasUser user = await BaaS.instance.auth.verifyPhoneOtp(
   phoneNumber: '+237655797860',
   code: '123456',
+  token: 'otp_token_xyz...',
 );
 ```
 
-### 4. Connexion Anonyme (Guest)
+### 4. Connexion Anonyme (Guest) & Déconnexion
 
 ```dart
+// Connexion Invité
 BaasUser anonymousUser = await BaaS.instance.auth.signInAnonymously();
-print('Utilisateur anonyme ID : ${anonymousUser.id}');
-```
-
-### 5. État Utilisateur & Déconnexion
-
-```dart
-// Récupérer l'utilisateur courant
-BaasUser? currentUser = BaaS.instance.auth.currentUser;
 
 // Écouter les changements d'état d'authentification
-BaaS.instance.auth.authStateChanges.listen((BaasUser? user) {
-  if (user != null) {
-    print('Utilisateur connecté : ${user.email}');
-  } else {
-    print('Utilisateur déconnecté');
-  }
+BaaS.instance.auth.onAuthStateChanged.listen((BaasUser? user) {
+  print(user != null ? 'Connecté : ${user.phoneNumber ?? user.email}' : 'Déconnecté');
 });
 
 // Déconnexion
@@ -181,11 +188,11 @@ await BaaS.instance.auth.signOut();
 ```dart
 // Création avec ID auto-généré
 var docRef = await BaaS.instance.database.collection('livres').add({
-  'titre': 'L\'art du Code Flutter',
-  'auteur': 'Etienne NDEMAZE',
-  'prix': 3500,
-  'categorie': 'Informatique',
-  'tags': ['flutter', 'dart', 'mobile'],
+  'titre': 'NGÙL LEKAN Tome 1',
+  'auteur': 'BDSTARS 237',
+  'prix': 3000,
+  'categorie': 'Bande Dessinée',
+  'tags': ['bd', 'cameroun', 'culture'],
   'vues': 0,
   'is_published': true,
   'created_at': DateTime.now().toIso8601String(),
@@ -193,56 +200,32 @@ var docRef = await BaaS.instance.database.collection('livres').add({
 
 print('Document créé avec ID : ${docRef.id}');
 
-// Création ou écrasement avec ID explicite
+// Écrire avec ID explicite
 await BaaS.instance.database.collection('livres').doc('livre_001').set({
-  'titre': 'NGÙL LEKAN',
-  'prix': 5000,
-  'statut': 'disponible',
+  'titre': 'NGÙL LEKAN Tome 1',
+  'prix': 3000,
 });
 ```
 
-### 2. Lire un Document Unique
+### 2. Mettre à Jour & Incrémentation Atomique ($inc)
 
 ```dart
-var doc = await BaaS.instance.database.collection('livres').doc('livre_001').get();
-
-if (doc.exists) {
-  print('Titre : ${doc.data['titre']}');
-  print('Prix : ${doc.data['prix']} FCFA');
-} else {
-  print('Document non trouvé.');
-}
-```
-
-### 3. Mettre à Jour & Incrémentation Atomique
-
-```dart
-// Mise à jour partielle sans écraser les autres champs
+// Mise à jour avec incrémentation atomique sécurisée ($inc: 1)
 await BaaS.instance.database.collection('livres').doc('livre_001').update({
-  'prix': 4500,
-  'vues': BaasFieldIncrement(1), // Incrémentation atomique sécurisée ($inc: 1)
+  'prix': 3500,
+  'vues': BaasFieldIncrement(1),
 });
 ```
 
-### 4. Supprimer un Document
-
-```dart
-await BaaS.instance.database.collection('livres').doc('livre_001').delete();
-```
-
----
-
-### 5. Requêtes Avancées & Filtres Puissants (Query Builder)
-
-Le SDK prend en charge tous les opérateurs de requêtes NoSQL haute performance :
+### 3. Requêtes Avancées & Filtres NoSQL
 
 ```dart
 // Requête filtrée avec tri, limite et pagination
 var snapshot = await BaaS.instance.database
     .collection('livres')
-    .where('categorie', '==', 'Informatique')
-    .where('prix', '<=', 10000)
-    .where('tags', 'array-contains', 'flutter')
+    .where('categorie', '==', 'Bande Dessinée')
+    .where('prix', '<=', 5000)
+    .where('tags', 'array-contains', 'cameroun')
     .orderBy('created_at', descending: true)
     .limit(10)
     .get();
@@ -264,70 +247,88 @@ for (var doc in snapshot.docs) {
 | **Exclusion liste** | `'not_in'` | `.where('categorie', 'not_in', ['archives'])` |
 | **Contient dans tableau** | `'array-contains'` | `.where('passions', 'array-contains', 'Lecture')` |
 | **Commence par** | `'starts_with'` | `.where('nom', 'starts_with', 'Kengne')` |
-| **Recherche globale** | `.search('texte')` | `.collection('livres').search('Algorithme').get()` |
+| **Recherche globale** | `.search('texte')` | `.collection('livres').search('Aventure').get()` |
 
 ---
 
 ## ☁️ Cloud Storage (BaasStorage)
 
-Téléversez facilement vos images, fichiers PDF ou vidéos :
-
 ```dart
 import 'dart:io';
 
-File imageFile = File('/path/to/profile.jpg');
+File imageFile = File('/path/to/cover.jpg');
 
 // Téléversement d'un fichier réel
 BaasStorageFile uploadResult = await BaaS.instance.storage.upload(
   file: imageFile,
-  folder: 'avatars',
-  customName: 'user_${BaaS.instance.auth.currentUser?.id}.jpg',
+  folder: 'covers',
+  customName: 'cover_ngul_01.jpg',
 );
 
-print('Fichier téléversé avec succès :');
 print('URL Publique : ${uploadResult.url}');
-print('Taille : ${uploadResult.size} octets');
-print('Format : ${uploadResult.mimeType}');
 ```
 
 ---
 
 ## 🔔 Notifications Push (BaasNotifications)
 
-Liez le token de notification de l'appareil (Firebase Cloud Messaging ou Apple Push) au profil de l'utilisateur :
-
 ```dart
 // Enregistrer le token FCM de l'appareil
 await BaaS.instance.notifications.registerDevice(
   fcmToken: 'ebF7MLYdSaatEbLOAJnUxc:APA91bGOIbkPEg...',
   platform: 'android', // 'android' | 'ios' | 'web'
-  deviceInfo: {
-    'model': 'Samsung Galaxy S23',
-    'app_version': '1.0.0',
-  },
 );
 ```
 
 ---
 
-## 💳 Paiements & Retraits Mobile Money (BaasPay)
+---
 
-Le SDK intègre nativement les encaissements et retraits **MTN Mobile Money (*126#)** et **Orange Money (*150#)**.
+## 💳 Paiements, Liens Hosted Checkout & Webhooks
 
-### 1. Modal de Paiement Intégré (Recommandé)
+Le SDK Flutter vous permet d'initier des paiements directs (PayIn), des retraits (PayOut) ou de **générer un lien de paiement hébergé unique (`checkout_url`)** pour ouvrir la page web sécurisée multi-opérateurs.
 
-Affichez en une ligne de code une interface modale complète prête à l'emploi :
+> 💡 **Configuration des Passerelles & URLs :**  
+> Depuis la console BaaS, activez les méthodes de paiement autorisées (Orange Money, MTN MoMo, Carte, PayPal, Express Union) et configurez vos URLs de notification (`notify_url`) et de retour (`success_url`, `fail_url`). Les URLs fournies dans vos requêtes SDK écrasent les configurations par défaut.
+
+### 1. Générer une Session Hosted Checkout (Lien Unique de Redirection)
+
+```dart
+// Génération du lien de paiement hébergé
+final session = await BaaS.instance.payments.createCheckoutSession(
+  amount: 5000,
+  currency: 'XAF',
+  customerName: 'Adonis BOPDA',
+  phone: '655797860',
+  description: 'Recharge compte premium',
+  notifyUrl: 'https://monsite.com/api/payment/webhook',
+  successUrl: 'https://monsite.com/commande/succes',
+  failUrl: 'https://monsite.com/commande/annulee',
+  allowedMethods: ['ORANGE_MONEY', 'MTN_MOMO', 'CARD'],
+  metadata: {'order_id': 'CMD_7781'},
+);
+
+print('Lien Hosted Checkout : ${session.checkoutUrl}');
+print('Référence : ${session.reference}');
+
+// Ouvrir le lien dans un WebView ou dans le navigateur externe :
+// launchUrl(Uri.parse(session.checkoutUrl), mode: LaunchMode.externalApplication);
+```
+
+---
+
+### 2. Modal de Paiement Flutter Intégré (UI Clé en Main)
 
 ```dart
 await showBaasPaymentModal(
   context: context,
-  amount: 2500, // Montant en FCFA
+  amount: 3000, // Montant en FCFA
   description: 'Achat du livre NGÙL LEKAN',
-  customerPhone: '655797860',
+  customerPhone: '697336094',
   customerName: 'Adonis BOPDA',
   onSuccess: (transaction) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Paiement réussi : ${transaction.reference}')),
+      SnackBar(content: Text('Paiement validé : ${transaction.reference}')),
     );
   },
   onFailure: (error) {
@@ -338,45 +339,65 @@ await showBaasPaymentModal(
 );
 ```
 
-### 2. Modal de Retrait (PayOut)
+---
+
+### 3. Modal de Retrait (PayOut - 0% Frais)
 
 ```dart
 await showBaasPayoutModal(
   context: context,
-  amount: 15000,
+  amount: 25000,
   beneficiaryPhone: '697336094',
-  beneficiaryName: 'Auteur Ulrich',
-  onSuccess: (transaction) {
-    print('Retrait effectué : ${transaction.reference}');
+  beneficiaryName: 'Auteur BDSTARS',
+  onSuccess: (payout) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Demande de retrait enregistrée : ${payout.reference}')),
+    );
   },
 );
 ```
 
-### 3. API Programmatique de Paiement
+---
+
+### 4. Suivi Réactif d'une Transaction (Stream Polling)
 
 ```dart
-// 1. Déclencher le paiement
-var transaction = await BaaS.instance.payments.initiatePayIn(
-  amount: 5000,
-  phoneNumber: '655797860',
-  operator: BaasPaymentOperator.mtn, // .mtn | .orange
-  description: 'Abonnement Premium 1 Mois',
+BaaS.instance.payments.pollTransactionStatus(session.reference).listen((tx) {
+  print('Statut en direct : ${tx.status}');
+  if (tx.isSuccessful) {
+    print('Paiement validé ! Montant Net : ${tx.netAmount} ${tx.currency}');
+  }
+});
+```
+
+---
+
+### 5. API Programmatique Directe (PayIn / PayOut)
+
+```dart
+// 1. Déclencher un paiement Orange Money ou MTN MoMo en API directe
+var result = await BaaS.instance.payments.initiatePayin(
+  amount: 3000,
+  paymentMethod: 'orange_money', // 'orange_money' | 'mtn_momo' | 'PayPal' | 'card'
+  phone: '697336094',
+  customerName: 'Kengne BOPDA',
+  description: 'Achat NGÙL LEKAN',
 );
 
-print('Transaction initiée : ${transaction.id}');
+print('Transaction initiée : ${result.transactionId}');
 
 // 2. Vérifier le statut de la transaction
-var status = await BaaS.instance.payments.checkStatus(transaction.id);
-print('Statut actuel : ${status.name}'); // pending, success, failed
+var status = await BaaS.instance.payments.getTransactionStatus(result.transactionId.toString());
+print('Statut : ${status.status}'); // pending, success, failed
 ```
 
 ---
 
 ## 🛡️ Sécurité & Bonnes Pratiques
 
-* 🔑 **Clé Publique (`pk_live_...`)** : À utiliser dans vos applications mobiles Flutter et applications web clientes. Les accès sont soumis aux règles de sécurité définies sur la console d'administration BaaS.
-* 🔒 **Clé Secrète (`sk_live_...`)** : **JAMAIS** dans une application cliente Flutter ! À réserver exclusivement à vos scripts serveurs ou backends sécurisés.
-* 📦 **Persistance** : Le SDK gère automatiquement la sauvegarde locale du jeton d'authentification utilisateur via `SharedPreferences`.
+* 🔑 **Clé Publique (`pk_live_...`)** : À utiliser dans vos applications Flutter mobiles.
+* 🔒 **Clé Secrète (`sk_live_...`)** : **JAMAIS** dans une application cliente Flutter !
+* 📦 **Persistance** : Sauvegarde automatique du token via `SharedPreferences`.
 
 ---
 
