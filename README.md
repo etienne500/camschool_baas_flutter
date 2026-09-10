@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Client Flutter / Dart officiel pour CamSchool BaaS (Backend-as-a-Service).**  
-> Alternative souveraine, ultra-rapide et tout-en-un à Firebase / Supabase spécialement optimisée pour les applications mobiles et web : base de données NoSQL Firestore-like, Authentification multi-canal (Email, Téléphone avec mot de passe ou SMS OTP, Anonyme), Cloud Storage, Notifications Push et **Paiements Hosted Checkout multi-passerelles (`orange_money`, `mtn_momo`, `PayPal`, `card`)**. *(Les retraits de fonds s'effectuent directement depuis le tableau de bord utilisateur de la plateforme).*
+> Alternative souveraine, ultra-rapide et tout-en-un à Firebase / Supabase spécialement optimisée pour les applications mobiles et web : base de données NoSQL Firestore-like, Authentification multi-canal (Email, Téléphone avec mot de passe ou SMS OTP, Anonyme), Cloud Storage, Notifications Push et **Paiements Hosted Checkout multi-passerelles (`orange_money`, `mtn_momo`, `PayPal`, `card`)**. *(Les retraits de fonds s'effectuent directement depuis le tableau de bord développeur et sont traités sous un délai de 3 jours par un administrateur).*
 
 ---
 
@@ -48,7 +48,7 @@
   * Moyens de paiement supportés : **`'orange_money'`**, **`'mtn_momo'`**, **`'PayPal'`**, **`'card'`** (Visa/Mastercard).
   * Génération de sessions sécurisées (`checkout_url`) pour redirection web ou WebView in-app.
   * Notifications IPN Webhook avec signature HMAC SHA256 et écoute réactive (`pollTransactionStatus`).
-  * *Note : Les retraits de solde sont gérés de manière sécurisée et exclusive depuis le tableau de bord utilisateur de la plateforme.*
+  * *Note : Les retraits de solde sont initiés depuis le tableau de bord développeur et traités sous un délai de 3 jours par un administrateur.*
 
 ---
 
@@ -288,7 +288,7 @@ Le module de paiement BaaS pour Flutter permet de **générer des liens de paiem
 
 > 💡 **Configuration Générale du Projet & Retraits :**  
 > - Activez/désactivez les passerelles et configurez les URLs par défaut (`notify_url`, `success_url`, `fail_url`) depuis la console BaaS.
-> - **Retraits de solde :** Les retraits de fonds s'effectuent de manière sécurisée et exclusive depuis le tableau de bord développeur de la plateforme (0% de commission).
+> - **Retraits de solde :** Les retraits de fonds s'effectuent de manière sécurisée depuis le tableau de bord développeur (0% de commission, traitement sous 3 jours par un administrateur).
 
 ### 1. Générer une Session Hosted Checkout (Lien Unique de Redirection)
 
