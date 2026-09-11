@@ -277,11 +277,208 @@ print('URL Publique : ${uploadResult.url}');
 
 ## 🔔 Notifications Push (BaasNotifications)
 
+CamSchool BaaS propose une infrastructure de **Notifications Push cross-platform (Android, iOS & Web)** basée sur Firebase Cloud Messaging (FCM) et Apple Push Notification service (APNs).
+
+---
+
+### 1. Prérequis & Fichiers de Configuration
+
+Pour activer les notifications sur votre application Flutter :
+
+1. **Projet Firebase** : Créez un projet sur la [Console Firebase](https://console.firebase.google.com).
+2. **Android** :
+   - Téléchargez votre fichier **`google-services.json`** et placez-le dans **`android/app/`**.
+   - Dans `android/build.gradle` (au niveau projet), ajoutez `classpath 'com.google.gms:google-services:4.4.1'`.
+   - Dans `android/app/build.gradle` (au niveau app), appliquez le plugin `apply plugin: 'com.google.gms.google-services'`.
+3. **iOS (APNs)** :
+   - Téléchargez votre fichier **`GoogleService-Info.plist`** et ajoutez-le via Xcode dans **`ios/Runner/`**.
+   - Ouvrez votre projet dans **Xcode** (`ios/Runner.xcworkspace`) > **Signing & Capabilities** :
+     - Cliquez sur **+ Capability** et ajoutez **Push Notifications**.
+     - Cliquez sur **+ Capability** et ajoutez **Background Modes** (cochez *Background fetch* et *Remote notifications*).
+   - Sur votre compte Apple Developer, générez une clé APNs (`.p8`) et importez-la dans la console Firebase (Paramètres du projet > Cloud Messaging > Configuration de l'application Apple).
+
+---
+
+### 2. Dépendances Flutter (`pubspec.yaml`)
+
+Ajoutez les packages officiels Firebase dans votre `pubspec.yaml` :
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  camschool_baas_flutter:
+    path: ./packages/camschool_baas_flutter
+  firebase_core: ^3.1.0
+  firebase_messaging: ^15.0.1
+  flutter_local_notifications: ^17.1.2 # Optionnel : pour bannières en premier plan
+```
+
+---
+
+### 3. Implémentation Complète (`main.dart`)
+
+Voici le flux complet : configuration du gestionnaire d'arrière-plan, demande de permission, récupération du token FCM, enregistrement sur CamSchool BaaS et écoute des clics/événements.
+
 ```dart
-// Enregistrer le token FCM de l'appareil
-await BaaS.instance.notifications.registerDevice(
-  fcmToken: 'ebF7MLYdSaatEbLOAJnUxc:APA91bGOIbkPEg...',
-  platform: 'android', // 'android' | 'ios' | 'web'
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:camschool_baas_flutter/camschool_baas_flutter.dart';
+
+// 1. Handler pour les notifications reçues quand l'application est en arrière-plan ou fermée
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('🔔 [Arrière-plan] Message reçu : ${message.notification?.title} - ${message.notification?.body}');
+  print('📦 Données personnalisées : ${message.data}');
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialisation de Firebase & du BaaS CamSchool
+  await Firebase.initializeApp();
+  await BaaS.init(
+    projectId: 'proj_zf3qirtdv4xc',
+    publicKey: 'pk_live_smULRpyZL00lxUVG97sZ9o0ruB9MxUw7UXg8GfTw',
+    baseUrl: 'https://camschool.kmrshop.com/api/baas/v1',
+  );
+
+  // Définir le handler d'arrière-plan
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _initPushNotifications();
+  }
+
+  Future<void> _initPushNotifications() async {
+    final messaging = FirebaseMessaging.instance;
+
+    // 2. Demander la permission à l'utilisateur (iOS / Android 13+)
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('✅ Permission de notification accordée');
+
+      // 3. Récupérer le token FCM de l'appareil
+      String? fcmToken = await messaging.getToken();
+      print('🔑 Token FCM de l\'appareil : $fcmToken');
+
+      if (fcmToken != null) {
+        // 4. Enregistrer le token auprès de CamSchool BaaS
+        await BaaS.instance.notifications.registerDevice(
+          fcmToken: fcmToken,
+          platform: Theme.of(context).platform == TargetPlatform.iOS ? 'ios' : 'android',
+          topics: ['actualites', 'annonces_cours'],
+        );
+        print('📱 Appareil enregistré avec succès sur CamSchool BaaS !');
+      }
+
+      // Écouter le rafraîchissement éventuel du token
+      messaging.onTokenRefresh.listen((newToken) async {
+        await BaaS.instance.notifications.registerDevice(
+          fcmToken: newToken,
+          platform: Theme.of(context).platform == TargetPlatform.iOS ? 'ios' : 'android',
+        );
+      });
+    }
+
+    // 5. Réception de notifications au premier plan (Foreground)
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('💬 [Premier plan] Message reçu : ${message.notification?.title}');
+      
+      // Afficher un SnackBar ou une alerte in-app
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${message.notification?.title ?? "Alerte"} : ${message.notification?.body ?? ""}'),
+            backgroundColor: Colors.indigo,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    });
+
+    // 6. Clic sur notification quand l'application était en arrière-plan
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('👉 Clic sur la notification (App en arrière-plan) : ${message.data}');
+      _handleNotificationClick(message.data);
+    });
+
+    // 7. Clic sur notification ayant réveillé l'application fermée (Terminated)
+    RemoteMessage? initialMessage = await messaging.getInitialMessage();
+    if (initialMessage != null) {
+      print('🚀 App lancée depuis une notification fermée : ${initialMessage.data}');
+      _handleNotificationClick(initialMessage.data);
+    }
+  }
+
+  void _handleNotificationClick(Map<String, dynamic> data) {
+    if (data.containsKey('route')) {
+      Navigator.of(context).pushNamed(data['route']);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: Scaffold(
+        body: Center(child: Text('CamSchool BaaS Push Notifications Ready!')),
+      ),
+    );
+  }
+}
+```
+
+---
+
+### 4. Envoi de Notifications Push depuis Flutter / Dart Backend
+
+Vous pouvez également déclencher des notifications depuis votre code applicatif ou vos backends :
+
+```dart
+// 1. Envoi Général (Broadcast à tous les appareils enregistrés)
+await BaaS.instance.notifications.send(
+  title: 'Nouvelle fonctionnalité disponible !',
+  body: 'Mettez à jour votre profil étudiant dès maintenant.',
+  targetType: 'all',
+  data: {'screen': '/profile', 'action': 'refresh'},
+);
+
+// 2. Envoi Ciblé à un Utilisateur Connecté
+await BaaS.instance.notifications.send(
+  title: 'Paiement confirmé 🎉',
+  body: 'Votre abonnement annuel a été activé avec succès.',
+  targetType: 'user',
+  target: 'usr_9841', // UID de l'utilisateur dans le projet
+  data: {'order_id': 'CMD_5541'},
+);
+
+// 3. Envoi sur un Topic Thématique
+await BaaS.instance.notifications.send(
+  title: 'Rappel Cours de Mathématiques',
+  body: 'Le cours débutera dans 15 minutes en direct.',
+  targetType: 'topic',
+  target: 'annonces_cours',
 );
 ```
 
