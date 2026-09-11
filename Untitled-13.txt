@@ -1,0 +1,1 @@
+curl.exe -s -H "X-Project-Id: proj_3ss8kbrq7ryi" -H "X-Api-Key: pk_live_qdjwpeAq8jm1g2KyJwVXtuGhqywXOIVXAHuPMaZv" http://127.0.0.1:8000/api/baas/v1/database/collections/profiles/documents

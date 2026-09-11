@@ -1,0 +1,16 @@
+Etudie tout les moyens de paiement qui sont dans C:\laragon\www\kmrshop_web\resources\views\seller\subscription\payment.blade.php
+ainsi que tout les fichiers associé qui peuvent te permettre de comprendre entièrement ce systeme de paiement
+afin de permettre a tout les utilisateurs de BaaS de pouvoir utiliser ces moyens de paiements et 
+effectuer les retraits. rassure toi que tout passe même les callback interne aux systeme BaaS 
+que tu vas implémenter en prennant 7% par en entré et 0% en sortie.
+
+tu vas donc mettre a jour les doc des SDK (C:\laragon\www\CamShool\camschool_mobile_last_version\camschoolapifinal\laravel_version_of_camschool_api\packages\camschool_baas_flutter\README.md,
+C:\laragon\www\CamShool\camschool_mobile_last_version\camschoolapifinal\laravel_version_of_camschool_api\packages\camschool_baas_js\README.md) et les http://127.0.0.1:8000/baas/docs
+afin de pouvoir implementer tout cela dans l'application.
+et en montrant a chaque utilisateurs comment initier une transaction et comment recevoir la reponses.
+
+tu vas aussi créer un widget (flutter,javascript, react, android natif, ios natif, php, python, java, ruby, nodejs,go) que tout le monde pourra appeller dans son application afin d'afficher
+les moyens de paiements disponibles et permettre a leurs clients d'effectuer un paiement et un retrait
+dans le but de faciliter l'intégration et l'utilisation de BaaS pour implementer les paiements et retraits
+
+soit le plus précis possible dans les documentations

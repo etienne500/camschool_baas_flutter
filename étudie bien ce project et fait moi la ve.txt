@@ -1,0 +1,7 @@
+étudie bien ce project et fait moi la version flutter 
+que va mettre dans C:\laragon\www\kissing-app\flutter_version_kissing_app
+
+NB : la charte graphique doit rester identique à l'original
+les langue les thèmes les couleurs les animations les icônes 
+les polices les boutons les formulaires tout doit être identique 
+à l'original. tu ne doit absolument rien changer.

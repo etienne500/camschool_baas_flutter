@@ -1,0 +1,8 @@
+https://supabase.com/dashboard/project/qsddtnqpkqvsipwfhawg/database/schemas
+
+sachant que voilà le lien de la base de données, je veux que ce
+tu me dise lier supabase a ce projet et que tu mette sur pied un systeme
+d'authentification complet sans verification d'OTP lors de l'inscription 
+
+
+tout ceci en utilisant les interface qui existe deja

@@ -1,0 +1,57 @@
+{
+    "id": "ce7a9cd7-d922-444a-bfbb-1ba9c5a5e560",
+    "aud": "authenticated",
+    "role": "authenticated",
+    "email": "user.phone.237655797861@gmail.com",
+    "phone": "",
+    "confirmation_sent_at": "2026-09-02T10:03:06.834176271Z",
+    "app_metadata": {
+        "provider": "email",
+        "providers": [
+            "email"
+        ]
+    },
+    "user_metadata": {
+        "age": 26,
+        "city": "Yaoundé",
+        "email": "user.phone.237655797861@gmail.com",
+        "email_verified": false,
+        "gender": "male",
+        "name": "etienne500",
+        "phone": "655797861",
+        "phone_verified": false,
+        "sub": "ce7a9cd7-d922-444a-bfbb-1ba9c5a5e560"
+    },
+    "identities": [
+        {
+            "identity_id": "c422094e-568b-47e3-9e3a-5f33b8583be7",
+            "id": "ce7a9cd7-d922-444a-bfbb-1ba9c5a5e560",
+            "user_id": "ce7a9cd7-d922-444a-bfbb-1ba9c5a5e560",
+            "identity_data": {
+                "age": 26,
+                "city": "Yaoundé",
+                "email": "user.phone.237655797861@gmail.com",
+                "email_verified": false,
+                "gender": "male",
+                "name": "etienne500",
+                "phone": "655797861",
+                "phone_verified": false,
+                "sub": "ce7a9cd7-d922-444a-bfbb-1ba9c5a5e560"
+            },
+            "provider": "email",
+            "last_sign_in_at": "2026-09-02T10:03:06.824667714Z",
+            "created_at": "2026-09-02T10:03:06.824722Z",
+            "updated_at": "2026-09-02T10:03:06.824722Z",
+            "email": "user.phone.237655797861@gmail.com"
+        }
+    ],
+    "created_at": "2026-09-02T10:03:06.804243Z",
+    "updated_at": "2026-09-02T10:03:07.522305Z",
+    "is_anonymous": false
+}
+
+
+6 77 47 88 29
+Ndemaze500@
+
+implémente toutes les fonctionnalités restantes de cet application celon les interfaces avec fierbase sachant que voici mes base de données supabase.

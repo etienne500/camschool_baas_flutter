@@ -291,12 +291,12 @@ await BaaS.instance.notifications.registerDevice(
 
 Envoyez facilement des SMS transactionnels et des emails depuis votre application Flutter ou votre backend Dart.
 
-> 💰 **Facturation SMS :** Les SMS sont facturés à **25 FCFA (25 frs) par SMS**. Le coût est automatiquement débité et tracé au niveau du projet.
+> 💰 **Facturation SMS :** Les SMS sont facturés à **25 FCFA (25 frs) par SMS**. Le montant est automatiquement débité et tracé au niveau du projet.
 
 ### 1. Envoi de SMS (Unitaire ou en Masse)
 
 ```dart
-// Envoi d'un SMS unitaire (Coût : 25 FCFA)
+// Envoi d'un SMS unitaire (Coût : 25 FCFA / SMS)
 try {
   BaasSmsResponse res = await BaaS.instance.sms.send(
     to: '+237655797860',
@@ -310,14 +310,14 @@ try {
   print('Erreur SMS : ${e.message}');
 }
 
-// Envoi de SMS groupés (Bulk)
+// Envoi de SMS groupés (Bulk : 25 FCFA x nombre de destinataires)
 BaasSmsResponse bulkRes = await BaaS.instance.sms.sendBulk(
   recipients: ['+237655797860', '+237697336094', '+237670000000'],
   message: 'Rappel : Événement spécial demain matin dès 9h00.',
 );
 
 print('Nombre de SMS envoyés : ${bulkRes.sentCount}');
-print('Coût total : ${bulkRes.totalCost} FCFA'); // 75.0 XAF
+print('Coût total : ${bulkRes.totalCost} FCFA'); // 75.0 XAF (3 x 25 FCFA)
 ```
 
 ### 2. Envoi d'Emails Transactionnels
@@ -345,15 +345,27 @@ try {
 
 ---
 
-## 💳 Module Paiements, Liens Hosted Checkout & Webhooks
+## 💳 Module Paiements, Liens Hosted Checkout & Passerelles (PayMooney & NoKash)
 
-Le module de paiement BaaS pour Flutter permet de **générer des liens de paiement hébergés uniques (`checkout_url`)** avec sélection multi-passerelles (Orange Money, MTN MoMo, Carte Bancaire, PayPal, Express Union), redirection vers vos URLs et notification instantanée vers `notify_url` (IPN Webhook signé).
+Le module de paiement BaaS pour Flutter permet de **générer des liens de paiement hébergés uniques (`checkout_url`)** supportant les passerelles de premier ordre :
+* 📱 **Orange Money** (`'ORANGE_MONEY'`) via **PayMooney** ou **NoKash**
+* 📱 **MTN Mobile Money** (`'MTN_MOMO'`) via **PayMooney** ou **NoKash**
+* 🌐 **PayPal** (`'PAYPAL'`) via **PayMooney**
+* 💳 **Cartes Bancaires Visa & Mastercard** (`'CARD'`) via **PayMooney**
+* 💼 **Express Union Mobile** (`'EU_MOBILE'`) via **NoKash**
 
-> 💡 **Configuration Générale du Projet & Retraits :**  
-> - Activez/désactivez les passerelles et configurez les URLs par défaut (`notify_url`, `success_url`, `fail_url`) depuis la console BaaS.
-> - **Retraits de solde :** Les retraits de fonds s'effectuent de manière sécurisée depuis le tableau de bord développeur (0% de commission, traitement sous 3 jours par un administrateur).
+> 📊 **Calcul Dynamique des Frais par Tranches de Montants :**  
+> Les administrateurs peuvent configurer des **paliers tarifaires** par tranche de montant (ex: 100 à 2 500 FCFA à 3%, 2 501 à 10 000 FCFA à 3%, 10 001 à 50 000 FCFA à 2.5%, > 50 000 FCFA à 2%). Le montant net et les frais sont calculés automatiquement.
 
-### 1. Générer une Session Hosted Checkout (Lien Unique de Redirection)
+### 1. Consulter les Méthodes & Tarifs en Direct
+
+```dart
+final methods = await BaaS.instance.payments.getMethods();
+print('Moyens disponibles : ${methods.length}');
+// Contient la passerelle active (PayMooney / NoKash), le tarif SMS (25 FCFA) et les tranches
+```
+
+### 2. Générer une Session Hosted Checkout (Lien Unique de Redirection)
 
 ```dart
 // Génération du lien de paiement hébergé
@@ -379,7 +391,7 @@ print('Référence : ${session.reference}');
 
 ---
 
-### 2. Modal de Paiement Flutter Clé-en-Main
+### 3. Modal de Paiement Flutter Clé-en-Main
 
 ```dart
 await BaasPaymentModal.show(
@@ -403,7 +415,7 @@ await BaasPaymentModal.show(
 
 ---
 
-### 3. Suivi Réactif d'une Transaction (Stream Polling)
+### 4. Suivi Réactif d'une Transaction (Stream Polling)
 
 ```dart
 BaaS.instance.payments.pollTransactionStatus(session.reference).listen((tx) {

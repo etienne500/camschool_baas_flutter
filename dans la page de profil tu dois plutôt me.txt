@@ -1,0 +1,3 @@
+dans la page de profil tu dois plutôt mettre deconnection quand celui
+ci est déjà connecter je veux aussi que tu implémente toutes les fonctionnalitées
+de la page Paramètres en utilisant si necessaire BaaS

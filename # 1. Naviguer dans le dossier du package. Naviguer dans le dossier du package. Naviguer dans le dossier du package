@@ -1,0 +1,20 @@
+# 1. Naviguer dans le dossier du package Flutter
+cd C:\laragon\www\CamShool\camschool_mobile_last_version\camschoolapifinal\laravel_version_of_camschool_api\packages\camschool_baas_flutter
+
+# 2. Initialiser Git
+git init
+
+# 3. Ajouter tous les fichiers (code source, doc.md, pubspec.yaml, etc.)
+git add .
+
+# 4. Créer le commit initial
+git commit -m "feat: initial release of CamSchool BaaS Flutter SDK v1.0.0"
+
+# 5. Définir la branche principale
+git branch -M main
+
+# 6. Lier à votre dépôt GitHub (remplacez VOTRE_PSEUDO par votre nom GitHub)
+git remote add origin https://github.com/VOTRE_PSEUDO/camschool_baas_flutter.git
+
+# 7. Envoyer sur GitHub
+git push -u origin main
