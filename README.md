@@ -21,8 +21,10 @@
 7. [🔔 Notifications Push (BaasNotifications)](#-notifications-push-baasnotifications)
 8. [💬 Messagerie SMS & Emails (BaasSms & BaasMail)](#-messagerie-sms--emails-baassms--baasmail)
 9. [💳 Module Paiements Hosted Checkout & Webhooks](#-module-paiements-hosted-checkout--webhooks)
-10. [🛡️ Sécurité & Bonnes Pratiques](#️-sécurité--bonnes-pratiques)
-11. [📄 Licence & Support](#-licence--support)
+10. [💡 Module Factures & Services Concessionnaires (ENEO, CamWater, Canal+, Airtime)](#-module-factures--services-concessionnaires)
+11. [📜 Historique des Transactions & Factures (Invoices)](#-module-factures--services-concessionnaires)
+12. [🛡️ Sécurité & Bonnes Pratiques](#️-sécurité--bonnes-pratiques)
+13. [📄 Licence & Support](#-licence--support)
 
 ---
 
@@ -238,6 +240,19 @@ var snapshot = await BaaS.instance.database
 for (var doc in snapshot.docs) {
   print('ID: ${doc.id} | Titre: ${doc.data['titre']} | Prix: ${doc.data['prix']}');
 }
+```
+
+### 4. [V2] Filtrage des champs (Select) & Sync Différentiel
+
+La Version 2 de l'API permet de réduire drastiquement la consommation de données (économie de batterie et de forfait) grâce au cache ETag et au filtrage des champs :
+
+```dart
+// Récupérer uniquement les titres et les prix
+var snapshotOptimized = await BaaS.instance.v2.database
+    .collection('livres')
+    .select(['titre', 'prix'])
+    .updatedAfter('2023-10-01T00:00:00Z') // Synchronisation différentielle
+    .get();
 ```
 
 #### Tableau des Opérateurs Supportés :
@@ -545,11 +560,14 @@ try {
 ## 💳 Module Paiements, Liens Hosted Checkout & Passerelles (PayMooney & NoKash)
 
 Le module de paiement BaaS pour Flutter permet de **générer des liens de paiement hébergés uniques (`checkout_url`)** supportant les passerelles de premier ordre :
-* 📱 **Orange Money** (`'ORANGE_MONEY'`) via **PayMooney** ou **NoKash**
-* 📱 **MTN Mobile Money** (`'MTN_MOMO'`) via **PayMooney** ou **NoKash**
-* 🌐 **PayPal** (`'PAYPAL'`) via **PayMooney**
-* 💳 **Cartes Bancaires Visa & Mastercard** (`'CARD'`) via **PayMooney**
-* 💼 **Express Union Mobile** (`'EU_MOBILE'`) via **NoKash**
+* 📱 **Orange Money** (`'ORANGE_MONEY'`, `'ORANGE_MONEY_NOKASH'`) via **NoKash** ou **PayMooney** (Push USSD `#150*50#`)
+* 📱 **MTN Mobile Money** (`'MTN_MOMO'`, `'MTN_MOMO_NOKASH'`) via **NoKash** ou **PayMooney** (Push USSD `*126#`)
+* 💼 **Express Union Mobile** (`'EU_MOBILE'`, `'EU_MOBILE_NOKASH'`) via **NoKash**
+* 🌐 **PayPal** (`'PAYPAL'`, `'PAYPAL_PAYMOONEY'`) via **PayMooney**
+* 💳 **Cartes Bancaires Visa & Mastercard** (`'CARD'`, `'CARD_PAYMOONEY'`, `'CARD_NOKASH'`) via **PayMooney** ou **NoKash**
+
+> ⚡ **Passerelle NoKash Mobile Money Haute Vitesse :**  
+> Prise en charge native avec Push USSD interactif, statut en temps réel (`REQUEST_OK`, `PENDING`, `SUCCESS`) et reversements automatisés (Payouts).
 
 > 📊 **Calcul Dynamique des Frais par Tranches de Montants :**  
 > Les administrateurs peuvent configurer des **paliers tarifaires** par tranche de montant (ex: 100 à 2 500 FCFA à 3%, 2 501 à 10 000 FCFA à 3%, 10 001 à 50 000 FCFA à 2.5%, > 50 000 FCFA à 2%). Le montant net et les frais sont calculés automatiquement.
@@ -559,7 +577,7 @@ Le module de paiement BaaS pour Flutter permet de **générer des liens de paiem
 ```dart
 final methods = await BaaS.instance.payments.getMethods();
 print('Moyens disponibles : ${methods.length}');
-// Contient la passerelle active (PayMooney / NoKash), le tarif SMS (25 FCFA) et les tranches
+// Contient la passerelle active (NoKash / PayMooney), le tarif SMS (25 FCFA) et les tranches
 ```
 
 ### 2. Générer une Session Hosted Checkout (Lien Unique de Redirection)
@@ -575,7 +593,7 @@ final session = await BaaS.instance.payments.createCheckoutSession(
   notifyUrl: 'https://monsite.com/api/payment/webhook',
   successUrl: 'https://monsite.com/commande/succes',
   failUrl: 'https://monsite.com/commande/annulee',
-  allowedMethods: ['ORANGE_MONEY', 'MTN_MOMO', 'CARD', 'PAYPAL'],
+  allowedMethods: ['ORANGE_MONEY_NOKASH', 'MTN_MOMO_NOKASH', 'EU_MOBILE_NOKASH', 'CARD_PAYMOONEY'],
   metadata: {'order_id': 'CMD_7781'},
 );
 
@@ -622,6 +640,204 @@ BaaS.instance.payments.pollTransactionStatus(session.reference).listen((tx) {
   }
 });
 ```
+
+---
+
+## 💡 Module Factures & Services Concessionnaires (ENEO, CamWater, Canal+, Airtime)
+
+Intégrez en quelques lignes de code le paiement des factures d'eau et d'électricité (**ENEO**, **CamWater**), le réabonnement aux chaînes TV (**Canal+**, **StarSat**) et l'achat de crédit téléphonique (**MTN**, **Orange**, **Camtel**, **Nexttel**, **YooMee**) directement dans votre application mobile Flutter, avec des **reçus PDF / HTML entièrement personnalisés à votre marque**.
+
+---
+
+### 1. Lister les Services & Tarifs de Commission
+
+```dart
+// Récupérer le catalogue de tous les services actifs
+final services = await BaaS.instance.bills.getServices();
+
+for (final s in services) {
+  print('${s['name']} (${s['code']}) - Frais: ${s['admin_fee_amount']} XAF');
+}
+
+// Filtrer par catégorie ('bill', 'tv', 'airtime', 'data', 'voucher')
+final billsOnly = await BaaS.instance.bills.getServices(category: 'bill');
+```
+
+---
+
+### 2. Consulter les Factures Impayées (ENEO & CamWater)
+
+```dart
+final result = await BaaS.instance.bills.checkBill(
+  serviceCode: 'ENEO',
+  serviceNumber: '2010023456', // Numéro de police du client
+);
+
+print('Nombre de factures trouvées : ${result['bills_count']}');
+print('Montant total à payer : ${result['total_amount']} XAF');
+
+for (final bill in result['bills']) {
+  print('Facture N° ${bill['bill_number']} - ${bill['amount']} XAF (+ ${bill['admin_fee']} F commission)');
+}
+```
+
+---
+
+### 3. Lister les Formules et Bouquets TV (Canal+, StarSat)
+
+```dart
+final response = await BaaS.instance.bills.getPackages('CANAL_PLUS');
+
+for (final pkg in response['packages']) {
+  print('${pkg['name']} : ${pkg['total_price']} XAF (ID: ${pkg['pay_item_id']})');
+}
+```
+
+---
+
+### 4. Régler une Facture ou un Réabonnement
+
+```dart
+final payment = await BaaS.instance.bills.payBill(
+  serviceCode: 'ENEO',
+  serviceNumber: '2010023456',
+  amount: 15000,
+  billNumber: 'FAC_ENEO_2026_09',
+  customerName: 'Paul Tchinda',
+  customerPhone: '699112233',
+  customerEmail: 'paul.tchinda@gmail.com',
+  paymentMethod: 'WALLET',
+);
+
+print('Facture payée avec succès ! PTN : ${payment['ptn']}');
+print('URL du reçu client : ${payment['render_url']}');
+```
+
+---
+
+### 5. Recharger du Crédit Téléphonique (Airtime & Data)
+
+```dart
+final topup = await BaaS.instance.bills.payAirtime(
+  serviceCode: 'MTN_AIRTIME',
+  phoneNumber: '677889900',
+  amount: 1000,
+  customerName: 'Franck Kamga',
+);
+
+print('Recharge effectuée : ${topup['amount']} XAF');
+print('Lien du reçu : ${topup['render_url']}');
+```
+
+---
+
+### 6. Personnaliser la Marque et la Mise en Page des Factures
+
+Chaque projet dispose d'une identité de facturation dédiée. Vous pouvez injecter votre logo, couleur primaire, RCCM/NUI et mentions de bas de page :
+
+```dart
+await BaaS.instance.bills.updateReceiptTemplate(
+  companyName: 'Ma Super FinTech Mobile',
+  logoUrl: 'https://monapp.cm/assets/logo.png',
+  primaryColor: '#059669', // Vert émeraude
+  address: 'Akwa, Douala - Cameroun',
+  phone: '+237 690 00 00 00',
+  email: 'contact@masuperfintech.cm',
+  taxId: 'M092100012345Z',
+  footerNote: 'Merci pour votre fidélité ! Reçu certifié conforme.',
+  showQrCode: true,
+  customFields: {
+    'Agent': 'Guichetier Mobile #12',
+    'Application': 'FinTech App v2.4'
+  },
+);
+```
+
+---
+
+### 7. Afficher le Reçu dans un WebView Flutter ou Déclencher l'Impression
+
+```dart
+import 'package:webview_flutter/webview_flutter.dart';
+
+// Ouvrir directement la page du reçu officiel dans votre interface Flutter :
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => Scaffold(
+      appBar: AppBar(title: const Text('Reçu Officiel')),
+      body: WebViewWidget(
+        controller: WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..loadRequest(Uri.parse(payment['render_url'])),
+      ),
+    ),
+  ),
+);
+```
+
+---
+
+### 8. Gestion des Frais et Commissions Administrateur
+
+* Les commissions sur chaque transaction sont définies de façon centralisée par l'administrateur dans le Dashboard BaaS (`/baas/admin`).
+* L'administrateur peut choisir une tarification **Fixe** (ex: `250 XAF` sur ENEO, `200 XAF` sur CamWater, `500 XAF` sur Canal+) ou au **Pourcentage** (ex: `2%` sur MTN / Orange Airtime).
+* Le SDK calcule et restitue instantanément la décomposition détaillée (`bill_amount`, `admin_fee`, `total_amount`) dans chaque réponse.
+
+---
+
+### 9. Consulter l'Historique des Transactions & Factures / View Invoice History
+
+Après chaque paiement, retrouvez l'intégralité de l'historique de toutes les transactions de votre projet et les détails complets de chaque facture ou reçu.
+
+> **FR** : Filtre automatique par projet via la clé applicative `X-Baas-App-Key`.  
+> **EN** : Results are automatically scoped to your project via `X-Baas-App-Key`.
+
+```dart
+// FR: Lister toutes les transactions paginées
+// EN: List all bill transactions (paginated)
+final invoices = await BaaS.instance.bills.listInvoices(
+  page: 1,
+  perPage: 20,
+  serviceCode: 'ENEO',    // Optionnel / Optional
+  status: 'completed',    // 'pending' | 'completed' | 'failed'
+);
+
+print('Total transactions : ${invoices['total']}');
+for (final tx in invoices['data']) {
+  print('[${tx['reference']}] ${tx['service_code']} — ${tx['total_amount']} XAF — ${tx['status']}');
+  print('  Reçu : ${tx['render_url']}');
+}
+
+// FR: Récupérer les détails d'une facture par référence
+// EN: Get full details of a specific invoice by reference
+final invoice = await BaaS.instance.bills.getInvoice('BILL_O85QALTULG_1790160727');
+
+print('Service : ${invoice['service_code']}');
+print('Client : ${invoice['invoice_data']['customer']['name']}');
+print('Montant facture : ${invoice['invoice_data']['bill_amount']} XAF');
+print('Commission : ${invoice['invoice_data']['admin_fee']} XAF');
+print('Total payé : ${invoice['invoice_data']['total_amount']} XAF');
+
+// Ouvrir le reçu dans un WebView Flutter
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => Scaffold(
+      appBar: AppBar(title: const Text('Facture / Invoice')),
+      body: WebViewWidget(
+        controller: WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..loadRequest(Uri.parse(invoice['render_url'])),
+      ),
+    ),
+  ),
+);
+```
+
+> 💡 **Auto-service Développeur** : Depuis la console BaaS (`/baas/console/bills`), vous pouvez payer des factures pour votre propre compte et consulter l'historique complet de vos transactions.
+>
+> 💡 **Developer Self-Service** : From the BaaS Console (`/baas/console/bills`), developers can pay utility bills directly for their own account and access their full transaction history.
 
 ---
 

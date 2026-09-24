@@ -1,3 +1,32 @@
+
+String _normalizeSdkUrl(String? raw) {
+  if (raw == null) return '';
+  var url = raw.trim();
+  if (url.isEmpty) return '';
+  if (url.startsWith('//')) return 'https:$url';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith('http://camschool.kmrshop.com') || url.startsWith('http://kmrshop.com')) {
+      return 'https://${url.substring(7)}';
+    }
+    return url;
+  }
+  if (url.startsWith('/storage/') || url.startsWith('/baas_storage/')) {
+    return 'https://camschool.kmrshop.com$url';
+  }
+  if (url.startsWith('storage/')) {
+    return 'https://camschool.kmrshop.com/$url';
+  }
+  if (url.startsWith('baas_storage/')) {
+    return 'https://camschool.kmrshop.com/storage/$url';
+  }
+  if (url.contains('kmrshop.com') || url.contains('.com/') || url.contains('.net/')) {
+    return 'https://${url.replaceFirst(RegExp(r"^/+"), "")}';
+  }
+  if (url.contains('/')) {
+    return 'https://camschool.kmrshop.com/storage/baas_storage/proj_3ss8kbrq7ryi/$url';
+  }
+  return url;
+}
 /// BaaS User Model
 class BaasUser {
   final String id;
@@ -26,7 +55,7 @@ class BaasUser {
       email: map['email']?.toString(),
       phoneNumber: (map['phone_number'] ?? map['phone'])?.toString(),
       displayName: (map['display_name'] ?? map['name'])?.toString(),
-      avatarUrl: (map['avatar_url'] ?? map['photo_url'])?.toString(),
+      avatarUrl: _normalizeSdkUrl((map['avatar_url'] ?? map['photo_url'])?.toString()),
       isAnonymous: map['is_anonymous'] == true,
       metadata: map['metadata'] is Map ? Map<String, dynamic>.from(map['metadata'] as Map) : {},
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
@@ -116,7 +145,7 @@ class BaasFileMetadata {
   });
 
   factory BaasFileMetadata.fromMap(Map<String, dynamic> map) {
-    final urlStr = (map['url'] ?? map['public_url'] ?? map['download_url'] ?? map['signed_url'] ?? '').toString();
+    final urlStr = _normalizeSdkUrl((map['url'] ?? map['public_url'] ?? map['download_url'] ?? map['signed_url'] ?? '').toString());
     final sizeVal = map['size'] ?? map['size_bytes'] ?? map['file_size'];
     final sizeInt = sizeVal is num ? sizeVal.toInt() : int.tryParse(sizeVal?.toString() ?? '0') ?? 0;
 
