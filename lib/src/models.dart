@@ -124,6 +124,83 @@ class BaasDocumentSnapshot {
   }
 }
 
+/// Recursive Multi-Table Join Specification (supports depth 10+)
+class BaasJoin {
+  final String collection;
+  final String? localField;
+  final String? foreignField;
+  final String? as;
+  final bool single;
+  final String type; // 'left' or 'inner'
+  final List<String>? select;
+  final dynamic where;
+  final String? orderBy;
+  final int? limit;
+  final List<BaasJoin> joins;
+
+  BaasJoin({
+    required this.collection,
+    this.localField,
+    this.foreignField,
+    this.as,
+    this.single = true,
+    this.type = 'left',
+    this.select,
+    this.where,
+    this.orderBy,
+    this.limit,
+    this.joins = const [],
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'collection': collection,
+      if (localField != null) 'local_field': localField,
+      if (foreignField != null) 'foreign_field': foreignField,
+      if (as != null) 'as': as,
+      'single': single,
+      'type': type,
+      if (select != null && select!.isNotEmpty) 'select': select,
+      if (where != null) 'where': where,
+      if (orderBy != null) 'orderBy': orderBy,
+      if (limit != null) 'limit': limit,
+      if (joins.isNotEmpty) 'join': joins.map((j) => j.toMap()).toList(),
+    };
+  }
+}
+
+/// BaaS Statistical Aggregation Result
+class BaasAggregationResult {
+  final int count;
+  final String? groupBy;
+  final List<Map<String, dynamic>> groups;
+  final Map<String, dynamic> raw;
+
+  BaasAggregationResult({
+    required this.count,
+    this.groupBy,
+    this.groups = const [],
+    this.raw = const {},
+  });
+
+  dynamic get(String alias) => raw[alias];
+
+  factory BaasAggregationResult.fromMap(Map<String, dynamic> map) {
+    final rawCount = map['count'] ?? map['total'];
+    final countInt = rawCount is num ? rawCount.toInt() : int.tryParse(rawCount?.toString() ?? '0') ?? 0;
+    final groupsList = map['groups'] is List
+        ? (map['groups'] as List).map((g) => g is Map ? Map<String, dynamic>.from(g) : <String, dynamic>{}).toList()
+        : <Map<String, dynamic>>[];
+
+    return BaasAggregationResult(
+      count: countInt,
+      groupBy: map['group_by']?.toString(),
+      groups: groupsList,
+      raw: map,
+    );
+  }
+}
+
 /// BaaS File Metadata
 class BaasFileMetadata {
   final String id;

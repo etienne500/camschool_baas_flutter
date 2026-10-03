@@ -1,7 +1,7 @@
 import 'client.dart';
 import 'models.dart';
 
-/// Database Manager (Firestore-like NoSQL)
+/// Database Manager (Firestore-like NoSQL with ultra-fast deep multi-table joins & aggregations)
 class BaasDatabase {
   final BaaS _client;
 
@@ -45,11 +45,15 @@ class BaasCollectionReference extends BaasQuery {
   }
 }
 
-/// Query Class for filtering and sorting
+/// Query Class for filtering, sorting, deep multi-table joins and statistical aggregations
 class BaasQuery {
   final BaaS _client;
   final String _collectionName;
   final List<Map<String, dynamic>> _filters = [];
+  Map<String, dynamic>? _complexWhere;
+  final List<BaasJoin> _joins = [];
+  final List<String> _expandPaths = [];
+  final List<String> _selectFields = [];
   String? _orderByField;
   String _orderDirection = 'asc';
   int? _limitCount;
@@ -57,7 +61,7 @@ class BaasQuery {
 
   BaasQuery(this._client, this._collectionName);
 
-  /// Add a filter condition (==, !=, >, >=, <, <=, in, not_in, contains)
+  /// Add a standard filter condition (==, !=, >, >=, <, <=, in, not_in, contains, starts_with, etc.)
   BaasQuery where(String field, String operator, dynamic value) {
     final query = _clone();
     query._filters.add({
@@ -75,7 +79,68 @@ class BaasQuery {
   BaasQuery whereLessThan(String field, dynamic value) => where(field, '<', value);
   BaasQuery whereLessThanOrEqualTo(String field, dynamic value) => where(field, '<=', value);
   BaasQuery whereIn(String field, List<dynamic> values) => where(field, 'in', values);
+  BaasQuery whereNotIn(String field, List<dynamic> values) => where(field, 'not_in', values);
   BaasQuery whereContains(String field, dynamic value) => where(field, 'contains', value);
+  BaasQuery whereStartsWith(String field, String value) => where(field, 'starts_with', value);
+  BaasQuery whereEndsWith(String field, String value) => where(field, 'ends_with', value);
+  BaasQuery whereLike(String field, String pattern) => where(field, 'like', pattern);
+
+  /// Add a deep recursive multi-table join (supports depth 10+)
+  BaasQuery join(BaasJoin joinSpec) {
+    final query = _clone();
+    query._joins.add(joinSpec);
+    return query;
+  }
+
+  /// Expand/Populate relations using dot-notation paths (e.g. 'author.company.country.region.continent')
+  BaasQuery expand(String path) {
+    final query = _clone();
+    query._expandPaths.add(path);
+    return query;
+  }
+
+  /// Expand multiple paths at once
+  BaasQuery expandList(List<String> paths) {
+    final query = _clone();
+    query._expandPaths.addAll(paths);
+    return query;
+  }
+
+  /// Alias for expand()
+  BaasQuery populate(String path) => expand(path);
+
+  /// Select specific fields to return from matching documents
+  BaasQuery select(List<String> fields) {
+    final query = _clone();
+    query._selectFields.addAll(fields);
+    return query;
+  }
+
+  /// Add an OR condition across multiple branches
+  BaasQuery whereOr(List<dynamic> conditions) {
+    final query = _clone();
+    query._complexWhere ??= {};
+    query._complexWhere!['$or'] ??= [];
+    (query._complexWhere!['$or'] as List).addAll(conditions);
+    return query;
+  }
+
+  /// Add an AND condition across multiple branches
+  BaasQuery whereAnd(List<dynamic> conditions) {
+    final query = _clone();
+    query._complexWhere ??= {};
+    query._complexWhere!['$and'] ??= [];
+    (query._complexWhere!['$and'] as List).addAll(conditions);
+    return query;
+  }
+
+  /// Pass a complex MongoDB/Firestore-like query tree ($and, $or, $nor, $not, regex, nested fields)
+  BaasQuery whereComplex(Map<String, dynamic> tree) {
+    final query = _clone();
+    query._complexWhere ??= {};
+    query._complexWhere!.addAll(tree);
+    return query;
+  }
 
   /// Order documents by a field
   BaasQuery orderBy(String field, {bool descending = false}) {
@@ -102,6 +167,12 @@ class BaasQuery {
   BaasQuery _clone() {
     final copy = BaasQuery(_client, _collectionName);
     copy._filters.addAll(_filters);
+    if (_complexWhere != null) {
+      copy._complexWhere = Map<String, dynamic>.from(_complexWhere!);
+    }
+    copy._joins.addAll(_joins);
+    copy._expandPaths.addAll(_expandPaths);
+    copy._selectFields.addAll(_selectFields);
     copy._orderByField = _orderByField;
     copy._orderDirection = _orderDirection;
     copy._limitCount = _limitCount;
@@ -109,12 +180,16 @@ class BaasQuery {
     return copy;
   }
 
-  /// Execute the query and get matching documents
+  /// Execute the query and get matching documents with hydrated multi-table joins
   Future<List<BaasDocumentSnapshot>> get() async {
     final payload = <String, dynamic>{
-      'filters': _filters,
-      if (_orderByField != null) 'order_by': _orderByField,
       'order_dir': _orderDirection,
+      if (_filters.isNotEmpty) 'filters': _filters,
+      if (_complexWhere != null) 'where': _complexWhere,
+      if (_joins.isNotEmpty) 'join': _joins.map((j) => j.toMap()).toList(),
+      if (_expandPaths.isNotEmpty) 'expand': _expandPaths.join(','),
+      if (_selectFields.isNotEmpty) 'select': _selectFields.join(','),
+      if (_orderByField != null) 'order_by': _orderByField,
       if (_limitCount != null) 'limit': _limitCount,
       if (_page != null) 'page': _page,
     };
@@ -133,6 +208,34 @@ class BaasQuery {
             ))
         .toList();
   }
+
+  /// Compute statistical aggregations ($sum, $avg, $min, $max, $count, $groupBy)
+  Future<BaasAggregationResult> aggregate(
+    Map<String, dynamic> aggregations, {
+    String? groupBy,
+  }) async {
+    final payload = <String, dynamic>{
+      'aggregate': aggregations,
+      if (groupBy != null) 'groupBy': groupBy,
+      if (_filters.isNotEmpty) 'filters': _filters,
+      if (_complexWhere != null) 'where': _complexWhere,
+    };
+
+    final res = await _client.request(
+      'POST',
+      'collections/$_collectionName/aggregate',
+      body: payload,
+    );
+
+    final rawData = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : <String, dynamic>{};
+    return BaasAggregationResult.fromMap(rawData);
+  }
+
+  /// Count matching documents
+  Future<int> count() async {
+    final agg = await aggregate({'total': 'count:id'});
+    return agg.count > 0 ? agg.count : (agg.get('total') is num ? (agg.get('total') as num).toInt() : 0);
+  }
 }
 
 /// Document Reference for direct single document operations
@@ -146,15 +249,22 @@ class BaasDocumentReference {
   String get id => documentId ?? '';
   String get path => 'collections/$collectionName/documents/$documentId';
 
-  /// Get the current snapshot of this document
-  Future<BaasDocumentSnapshot> get() async {
+  /// Get the current snapshot of this document with optional multi-table join expansions
+  Future<BaasDocumentSnapshot> get({String? expand, List<BaasJoin>? joins}) async {
     if (documentId == null || documentId!.isEmpty) {
       throw ArgumentError('Document ID is required to fetch a document snapshot.');
     }
 
+    final queryParams = <String>[];
+    if (expand != null && expand.isNotEmpty) {
+      queryParams.add('expand=${Uri.encodeComponent(expand)}');
+    }
+
+    final queryStr = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+
     final res = await _client.request(
       'GET',
-      'collections/$collectionName/documents/$documentId',
+      'collections/$collectionName/documents/$documentId$queryStr',
     );
 
     final rawData = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : <String, dynamic>{};
