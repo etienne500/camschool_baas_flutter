@@ -778,21 +778,30 @@ print('Référence : ${session.reference}');
 
 ### 3. Modal de Paiement Flutter Clé-en-Main (Personnalisable)
 
-Le SDK fournit un composant `BaasPaymentModal` prêt à l'emploi avec support de la personnalisation graphique complète (**label**, **titre et couleur hex**, **couleur principale hex du widget**, **logo**) :
+Le SDK fournit un composant `BaasPaymentModal` prêt à l'emploi avec support de la personnalisation graphique complète (**label**, **titre**, **couleurs hex primaire/secondaire/tertiaire**, **logo**, et **activation/masquage du champ nom client**) :
+
+> 🎨 **Configuration Visuelle depuis le Tableau de Bord Développeur :**  
+> Vous pouvez configurer directement l'apparence par défaut de votre widget depuis la **Console BaaS > Paiements > 🎨 Personnalisation du Widget** :
+> * **Logo & Identité :** Téléversez votre logo officiel ou spécifiez une URL externe.
+> * **Titres & Textes :** Personnalisez le titre d'en-tête et le sous-titre/label.
+> * **Couleurs Thématiques :** Couleur primaire (boutons et accents), couleur secondaire (titre) et couleur tertiaire. Presets de thèmes intégrés (Orange CamSchool, Émeraude FinTech, Indigo Digital, Violet Royal, Cyber Cyan).
+> * **Affichage des Champs :** Activez ou masquez le champ optionnel « Nom complet » du client (`show_customer_name`).
+> * **Prévisualisation en Temps Réel :** Aperçu interactif instantané des modifications directement dans la console.
 
 ```dart
 await BaasPaymentModal.show(
   context,
-  amount: 3000, // Montant en FCFA
+  amount: 3000, // Montant en FCFA (dynamique)
   currency: 'XAF',
   description: 'Achat du livre NGÙL LEKAN',
   initialPhone: '697336094',
   customerName: 'Adonis BOPDA',
+  showCustomerName: true, // true pour afficher le champ 'Nom complet', false pour le masquer
   // 🎨 Personnalisation Graphique du Widget (Couleurs, Logo, Label) :
   label: 'Paiement sécurisé et instantané', // Libellé / sous-titre personnalisé
   title: 'CamSchool BaaS Pay',              // Titre du widget
   titleColor: const Color(0xFF1E1B4B),       // Widget title hex color (ex: #1E1B4B)
-  primaryColor: const Color(0xFFFF6B00),     // Widget hex color (ex: #FF6B00 ou #10B981)
+  primaryColor: const Color(0xFFFF6B00),     // Widget primary hex color (ex: #FF6B00 ou #10B981)
   logoUrl: 'https://monsite.com/logo.png',   // Logo personnalisé (ou fallback logo officiel)
   onSuccess: (transaction) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -807,22 +816,35 @@ await BaasPaymentModal.show(
 );
 ```
 
-#### 🌐 Pour Flutter Web ou Landing Pages associées :
-Si vous déployez sur **Flutter Web** ou disposez d'un site vitrine compagnon en HTML/JS, vous pouvez également intégrer directement le script CDN universel officiel :
+#### 🔄 Gestion Automatisée des Passerelles Externes (PayMooney, Cartes, PayPal)
+
+* **Flux Mobile Money USSD Direct (NoKash)** : L'acheteur reçoit instantanément une invite USSD sur son terminal (`#150*50#` ou `*126#`) pour valider son code PIN.
+* **Flux Redirection PayMooney / Carte Bancaire / PayPal** :
+  1. Lors de l'initiation, le lien de paiement externe sécurisé est récupéré.
+  2. Sur Web, la page de paiement s'ouvre automatiquement dans un **nouvel onglet** (`_blank`), ou via `launchUrl()` dans le navigateur externe / WebView sur mobile.
+  3. L'application ou le modal **reste ouvert** et effectue une **écoute en direct (polling)** du statut de la transaction jusqu'à validation.
+  4. Dès confirmation, le modal passe à l'écran de succès et invoque `onSuccess(transaction)`.
+
+#### 🌐 Pour Flutter Web ou Landing Pages associées (Widget Universel) :
+Si vous déployez sur **Flutter Web** ou disposez d'un site vitrine compagnon en HTML/JS, vous pouvez également intégrer directement le script CDN universel avec passage du montant dynamique et personnalisation complète :
 
 ```html
 <script src="https://camschool.kmrshop.com/baas/app/views/Widget/js/scriptwidget.js"></script>
+<button id="paiement" data-amount="5000" data-show-customer-name="false">Payer 5 000 FCFA</button>
+
 <script>
-var mykey = "key"; // ou votre clé pk_live_...
+var mykey = "pk_live_votre_cle"; // ou "key" en test
 var widgetLabel = "Valider ma commande";
 var widgetTitleHexColor = "#1E1B4B";
 var widgetHexColor = "#FF6B00";
 var widgetLogo = "https://monsite.com/logo.png";
+var showCustomerName = false; // Masquer le champ 'Nom complet' si souhaité
 
 document.addEventListener("DOMContentLoaded", function () {
   const paiementBtn = document.getElementById("paiement");
   paiementBtn.addEventListener("click", function (e) {
-    paiement(callbackReussite, callbackErreur, mykey);
+    // Passage du montant dynamique en 4ème argument (5000 FCFA) :
+    paiement(callbackReussite, callbackErreur, mykey, 5000);
   });
 });
 
