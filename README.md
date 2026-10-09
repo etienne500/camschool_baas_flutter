@@ -776,15 +776,24 @@ print('Référence : ${session.reference}');
 
 ---
 
-### 3. Modal de Paiement Flutter Clé-en-Main
+### 3. Modal de Paiement Flutter Clé-en-Main (Personnalisable)
+
+Le SDK fournit un composant `BaasPaymentModal` prêt à l'emploi avec support de la personnalisation graphique complète (**label**, **titre et couleur hex**, **couleur principale hex du widget**, **logo**) :
 
 ```dart
 await BaasPaymentModal.show(
   context,
   amount: 3000, // Montant en FCFA
+  currency: 'XAF',
   description: 'Achat du livre NGÙL LEKAN',
   initialPhone: '697336094',
   customerName: 'Adonis BOPDA',
+  // 🎨 Personnalisation Graphique du Widget (Couleurs, Logo, Label) :
+  label: 'Paiement sécurisé et instantané', // Libellé / sous-titre personnalisé
+  title: 'CamSchool BaaS Pay',              // Titre du widget
+  titleColor: const Color(0xFF1E1B4B),       // Widget title hex color (ex: #1E1B4B)
+  primaryColor: const Color(0xFFFF6B00),     // Widget hex color (ex: #FF6B00 ou #10B981)
+  logoUrl: 'https://monsite.com/logo.png',   // Logo personnalisé (ou fallback logo officiel)
   onSuccess: (transaction) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Paiement validé : ${transaction.reference}')),
@@ -798,7 +807,37 @@ await BaasPaymentModal.show(
 );
 ```
 
+#### 🌐 Pour Flutter Web ou Landing Pages associées :
+Si vous déployez sur **Flutter Web** ou disposez d'un site vitrine compagnon en HTML/JS, vous pouvez également intégrer directement le script CDN universel officiel :
+
+```html
+<script src="https://camschool.kmrshop.com/baas/app/views/Widget/js/scriptwidget.js"></script>
+<script>
+var mykey = "key"; // ou votre clé pk_live_...
+var widgetLabel = "Valider ma commande";
+var widgetTitleHexColor = "#1E1B4B";
+var widgetHexColor = "#FF6B00";
+var widgetLogo = "https://monsite.com/logo.png";
+
+document.addEventListener("DOMContentLoaded", function () {
+  const paiementBtn = document.getElementById("paiement");
+  paiementBtn.addEventListener("click", function (e) {
+    paiement(callbackReussite, callbackErreur, mykey);
+  });
+});
+
+function callbackReussite(data) {
+  console.log("Le paiement a réussi !", data);
+}
+
+function callbackErreur(data) {
+  console.log("Le paiement a échoué !", data);
+}
+</script>
+```
+
 ---
+
 
 ### 4. Suivi Réactif d'une Transaction (Stream Polling)
 
