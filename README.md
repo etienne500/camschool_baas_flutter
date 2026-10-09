@@ -791,9 +791,9 @@ Le SDK fournit un composant `BaasPaymentModal` prêt à l'emploi avec support de
 ```dart
 await BaasPaymentModal.show(
   context,
-  amount: 3000, // Montant en FCFA (dynamique)
-  currency: 'XAF',
-  description: 'Achat du livre NGÙL LEKAN',
+  amount: 25, // Montant dynamique (ex: 25 USD ou 5000 XAF)
+  currency: 'USD', // 'USD', 'EUR', 'CAD', 'XAF', 'XOF' (Filtre automatiquement les passerelles)
+  description: 'Achat Abonnement International',
   initialPhone: '697336094',
   customerName: 'Adonis BOPDA',
   showCustomerName: true, // true pour afficher le champ 'Nom complet', false pour le masquer
@@ -816,6 +816,23 @@ await BaasPaymentModal.show(
 );
 ```
 
+#### 🌍 Filtrage Intelligent des Moyens de Paiement par Devise
+
+Le SDK et le modal adaptent automatiquement les options de paiement selon la **devise demandée** ET les **méthodes activées par le développeur dans son tableau de bord** :
+
+* 🇨🇲 **Devises Locales (`XAF`, `XOF`, Franc CFA)** :
+  * 📱 **Orange Money** (`ORANGE_MONEY_NOKASH` / `ORANGE_MONEY_PAYMOONEY`)
+  * 📱 **MTN Mobile Money** (`MTN_MOMO_NOKASH` / `MTN_MOMO_PAYMOONEY`)
+  * 💼 **Express Union Mobile** (`EU_MOBILE_NOKASH`)
+  * 💳 **Cartes Bancaires Visa & Mastercard**
+* 🌐 **Devises Internationales (`USD`, `EUR`, `CAD`, `GBP`, etc.)** :
+  * 🅿️ **PayPal** (via PayMooney)
+  * 💳 **Cartes Bancaires Visa & Mastercard**
+  * *(Les options Mobile Money locales sont automatiquement masquées)*
+* ⚙️ **Conformité Totale au Dashboard Développeur** : Seules les passerelles activées et cochées par le développeur dans son interface BaaS sont présentées au client final.
+
+---
+
 #### 🔄 Gestion Automatisée des Passerelles Externes (PayMooney, Cartes, PayPal)
 
 * **Flux Mobile Money USSD Direct (NoKash)** : L'acheteur reçoit instantanément une invite USSD sur son terminal (`#150*50#` ou `*126#`) pour valider son code PIN.
@@ -826,11 +843,13 @@ await BaasPaymentModal.show(
   4. Dès confirmation, le modal passe à l'écran de succès et invoque `onSuccess(transaction)`.
 
 #### 🌐 Pour Flutter Web ou Landing Pages associées (Widget Universel) :
-Si vous déployez sur **Flutter Web** ou disposez d'un site vitrine compagnon en HTML/JS, vous pouvez également intégrer directement le script CDN universel avec passage du montant dynamique et personnalisation complète :
+Si vous déployez sur **Flutter Web** ou disposez d'un site vitrine compagnon en HTML/JS, vous pouvez également intégrer directement le script CDN universel avec passage du montant et de la devise dynamiques :
 
 ```html
 <script src="https://camschool.kmrshop.com/baas/app/views/Widget/js/scriptwidget.js"></script>
-<button id="paiement" data-amount="5000" data-show-customer-name="false">Payer 5 000 FCFA</button>
+<button id="paiement" data-amount="25" data-currency="USD" data-show-customer-name="false">
+  Pay $25 USD
+</button>
 
 <script>
 var mykey = "pk_live_votre_cle"; // ou "key" en test
@@ -843,8 +862,11 @@ var showCustomerName = false; // Masquer le champ 'Nom complet' si souhaité
 document.addEventListener("DOMContentLoaded", function () {
   const paiementBtn = document.getElementById("paiement");
   paiementBtn.addEventListener("click", function (e) {
-    // Passage du montant dynamique en 4ème argument (5000 FCFA) :
-    paiement(callbackReussite, callbackErreur, mykey, 5000);
+    // Passage du montant et de la devise dynamiques :
+    paiement(callbackReussite, callbackErreur, mykey, {
+      amount: 25,
+      currency: "USD"
+    });
   });
 });
 
