@@ -778,6 +778,16 @@ print('Référence : ${session.reference}');
 
 ### 3. Modal de Paiement Flutter Clé-en-Main (Personnalisable)
 
+> 🌍 **Filtrage Intelligent selon la Devise (`currency`) :**
+> * Si `currency: 'USD'` (ou devises internationales) : le modal filtre automatiquement pour afficher uniquement les passerelles internationales (**Carte Bancaire** et **PayPal**) activées par le développeur.
+> * Si `currency: 'XAF'` (ou devises locales) : le modal affiche les passerelles locales (**Orange Money**, **MTN MoMo**, **Express Union**).
+
+> 🇨🇲 **Détection Automatique & Tolérance des Réseaux Camerounais :**
+> * **Orange Cameroun :** Préfixes `690-699` et `655-659` (validation USSD `#150*50#`).
+> * **MTN Cameroun :** Préfixes `670-679`, `680-683` et `650-654` (validation USSD `*126#`).
+> * Si un utilisateur saisit un numéro Orange avec MTN sélectionné (ou inversement), le BaaS auto-corrige automatiquement la méthode pour éviter tout rejet d'opérateur.
+> * Les requêtes NoKash intègrent une protection contre les timeouts avec réessais automatiques (retry).
+
 Le SDK fournit un composant `BaasPaymentModal` prêt à l'emploi avec support de la personnalisation graphique complète (**label**, **titre**, **couleurs hex primaire/secondaire/tertiaire**, **logo**, et **activation/masquage du champ nom client**) :
 
 > 🎨 **Configuration Visuelle depuis le Tableau de Bord Développeur :**  
@@ -884,6 +894,8 @@ function callbackErreur(data) {
 
 
 ### 4. Suivi Réactif d'une Transaction (Stream Polling)
+
+Écoutez en temps réel l'évolution de la transaction : le Stream continue de vérifier tant que la transaction est en attente (`pending`), sans expiration arbitraire :
 
 ```dart
 BaaS.instance.payments.pollTransactionStatus(session.reference).listen((tx) {

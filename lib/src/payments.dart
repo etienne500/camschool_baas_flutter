@@ -340,14 +340,14 @@ class BaasPayments {
     return rawList.map((item) => BaasTransaction.fromMap(item)).toList();
   }
 
-  /// Polling automatique d'une transaction jusqu'à validation finale
+  /// Polling automatique d'une transaction jusqu'à validation finale (attend tant que pending)
   Stream<BaasTransaction> pollTransactionStatus(
     String transactionIdOrRef, {
     Duration interval = const Duration(seconds: 3),
-    Duration timeout = const Duration(minutes: 5),
+    Duration? timeout,
   }) async* {
     final stopwatch = Stopwatch()..start();
-    while (stopwatch.elapsed < timeout) {
+    while (timeout == null || stopwatch.elapsed < timeout) {
       final tx = await getTransactionStatus(transactionIdOrRef);
       yield tx;
       if (!tx.isPending) {
